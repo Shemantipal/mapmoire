@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+model StoryCapsule {
+  id          String   @id @default(cuid())
+
+  userId      String
+
+  placeName   String
+  state       String?
+
+  lat         Float?
+  lng         Float?
+
+  caption     String?
+  quote       String?
+
+
+  songTitle   String?
+  artist      String?
+  spotifyUrl  String?
+  previewUrl  String?
+  albumArt    String?
+
+
+  images      String[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([placeName])
+}
+
+model ShareLink {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  userId     String
+  userName   String?
+  placeName  String?
+  capsuleId  String?
+  type       String
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])      
+  @@index([placeName])   
+}
