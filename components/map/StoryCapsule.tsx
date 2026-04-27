@@ -48,20 +48,24 @@ export function StoryCapsule({
 
   /* ── Save new capsule ── */
   const handleSave = async ({
-    caption,
-    quote,
-    images,
-    selectedSong,
-    mood,
-  }: {
-    caption: string;
-    quote: string;
-    images: string[];
-    selectedSong: Track | null;
-    mood: MoodTag | null;
-  }) => {
-    if (!caption.trim() && !quote.trim() && !selectedSong && images.length === 0) return;
-
+  caption,
+  quote,
+  images,
+  selectedSong,
+  mood,
+  overhyped,
+  hiddenGem,
+}: {
+  caption: string;
+  quote: string;
+  images: string[];
+  selectedSong: Track | null;
+  mood: MoodTag | null;
+  overhyped: string;
+  hiddenGem: string;
+}) => {
+  if (!caption.trim() && !quote.trim() && !selectedSong && images.length === 0) return;
+  
     try {
       setSaving(true);
       const res = await fetch("/api/capsules", {
@@ -81,6 +85,8 @@ export function StoryCapsule({
           previewUrl: selectedSong?.previewUrl || null,
           albumArt: selectedSong?.image || null,
           images,
+           overhyped,   // ← add
+        hiddenGem,
         }),
       });
 

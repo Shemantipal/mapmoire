@@ -101,18 +101,87 @@
   }
 }
 
-/* MapLibre canvas fantasy look */
+/* ═══════════════════════════════════════════════════════
+   MAGICAL WATER — MapLibre canvas
+═══════════════════════════════════════════════════════ */
+
+/* Deep ocean base with animated hue-shift */
 .maplibregl-canvas {
-  filter: saturate(1.22) contrast(1.08) brightness(1.02);
-  box-shadow: inset 0 0 120px rgba(56, 189, 248, 0.12);
+  filter: saturate(1.35) contrast(1.1) brightness(1.03) hue-rotate(var(--ocean-hue, 0deg));
+  box-shadow: inset 0 0 120px rgba(0, 200, 255, 0.18);
+  animation: oceanHueShift 12s ease-in-out infinite;
 }
 
+@keyframes oceanHueShift {
+  0%   { filter: saturate(1.35) contrast(1.1) brightness(1.03) hue-rotate(0deg); }
+  25%  { filter: saturate(1.5)  contrast(1.12) brightness(1.05) hue-rotate(8deg); }
+  50%  { filter: saturate(1.4)  contrast(1.08) brightness(1.04) hue-rotate(-5deg); }
+  75%  { filter: saturate(1.45) contrast(1.11) brightness(1.06) hue-rotate(12deg); }
+  100% { filter: saturate(1.35) contrast(1.1)  brightness(1.03) hue-rotate(0deg); }
+}
+
+/* Canvas background — deep sea gradient */
 .maplibregl-canvas-container {
   background:
-    radial-gradient(circle at center, #dbeafe 0%, #bae6fd 35%, #d9f99d 100%);
+    radial-gradient(ellipse at 30% 70%, #064e7a 0%, #033d6b 35%, #011f40 100%);
 }
 
-/* MapLibre controls */
+/* ═══════════════════════════════════════════════════════
+   OCEAN SHIMMER OVERLAY
+   (a transparent div layered over the map in JSX,
+   with pointer-events: none so it doesn't block clicks)
+═══════════════════════════════════════════════════════ */
+
+.ocean-shimmer-overlay {
+  background:
+    repeating-linear-gradient(
+      105deg,
+      transparent 0px,
+      transparent 28px,
+      rgba(0, 220, 255, 0.028) 28px,
+      rgba(0, 220, 255, 0.028) 30px
+    ),
+    repeating-linear-gradient(
+      -75deg,
+      transparent 0px,
+      transparent 42px,
+      rgba(56, 189, 248, 0.022) 42px,
+      rgba(56, 189, 248, 0.022) 44px
+    );
+  animation: shimmerDrift 8s linear infinite;
+  opacity: 1;
+  mix-blend-mode: screen;
+}
+
+@keyframes shimmerDrift {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 200px 120px, -160px 200px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   BIOLUMINESCENT RIVER PULSE
+   Applied via a second overlay for river glow regions
+═══════════════════════════════════════════════════════ */
+
+.river-glow-overlay {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(0, 255, 230, 0.06) 0%,
+    transparent 60%
+  );
+  animation: riverPulseOverlay 4s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+@keyframes riverPulseOverlay {
+  0%   { opacity: 0.4; transform: scaleX(1); }
+  100% { opacity: 0.85; transform: scaleX(1.03); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MapLibre controls
+═══════════════════════════════════════════════════════ */
+
 .maplibregl-ctrl-group {
   border: none !important;
   background: rgba(10, 10, 20, 0.72) !important;
@@ -130,25 +199,32 @@
 }
 
 .maplibregl-ctrl-group button:hover {
-  background: rgba(236, 72, 153, 0.18) !important;
+  background: rgba(0, 200, 255, 0.18) !important;
 }
 
-/* Popup */
+/* ═══════════════════════════════════════════════════════
+   Popup
+═══════════════════════════════════════════════════════ */
+
 .mapmoire-popup .maplibregl-popup-content {
   background: rgba(9, 9, 11, 0.92);
   color: white;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(0, 220, 255, 0.18);
   box-shadow:
     0 20px 70px rgba(0, 0, 0, 0.45),
-    0 0 40px rgba(236, 72, 153, 0.16);
+    0 0 40px rgba(0, 200, 255, 0.2),
+    0 0 80px rgba(236, 72, 153, 0.1);
 }
 
 .mapmoire-popup .maplibregl-popup-tip {
   border-top-color: rgba(9, 9, 11, 0.92);
 }
 
-/* Magical city markers */
+/* ═══════════════════════════════════════════════════════
+   Magical city markers
+═══════════════════════════════════════════════════════ */
+
 .mapmoire-city-marker {
   position: relative;
   width: 54px;
@@ -176,7 +252,7 @@
   position: absolute;
   inset: -22px;
   border-radius: 999px;
-  border: 1px solid rgba(125, 211, 252, 0.25);
+  border: 1px solid rgba(0, 220, 255, 0.3);
   animation: mapmoirePulse 3s infinite;
 }
 
@@ -184,7 +260,7 @@
   position: absolute;
   inset: -15px;
   border-radius: 999px;
-  background: rgba(56, 189, 248, 0.22);
+  background: rgba(0, 220, 255, 0.22);
   animation: mapmoirePulse 2.1s ease-out infinite;
 }
 
@@ -218,7 +294,10 @@
   }
 }
 
-/* Smooth scrollbar */
+/* ═══════════════════════════════════════════════════════
+   Smooth scrollbar
+═══════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -228,27 +307,31 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(236, 72, 153, 0.45);
+  background: rgba(0, 200, 255, 0.38);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(236, 72, 153, 0.7);
+  background: rgba(0, 200, 255, 0.65);
 }
+
+/* ═══════════════════════════════════════════════════════
+   Tourist markers
+═══════════════════════════════════════════════════════ */
 
 .tourist-marker {
   width: 34px;
   height: 34px;
   border: 0;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.88);
+  background: rgba(4, 20, 46, 0.88);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   box-shadow:
-    0 0 18px rgba(56, 189, 248, 0.45),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    0 0 18px rgba(0, 220, 255, 0.5),
+    inset 0 0 0 1px rgba(0, 220, 255, 0.28);
   backdrop-filter: blur(12px);
   animation: touristPop 2.4s ease-in-out infinite;
 }
@@ -268,41 +351,86 @@
   }
 }
 
-.mapmoire-city-marker{
-position:relative;
+/* ═══════════════════════════════════════════════════════
+   Marker wrap & bucket check
+═══════════════════════════════════════════════════════ */
+
+.mapmoire-city-marker {
+  position: relative;
 }
 
-.marker-wrap{
-position:relative;
-display:flex;
-align-items:center;
-justify-content:center;
+.marker-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.bucket-check{
-position:absolute;
-top:-14px;
-right:-14px;
-width:28px;
-height:28px;
-border-radius:50%;
-background:#ff2d9c;
-color:#fff;
-font-weight:900;
-font-size:16px;
-display:flex;
-align-items:center;
-justify-content:center;
-border:3px solid white;
-z-index:999;
-box-shadow:
-0 0 20px #ff2d9c,
-0 0 40px rgba(255,45,156,.7);
-animation:pulseCheck 2s infinite;
+.bucket-check {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ff2d9c;
+  color: #fff;
+  font-weight: 900;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid white;
+  z-index: 999;
+  box-shadow:
+    0 0 20px #ff2d9c,
+    0 0 40px rgba(255, 45, 156, 0.7);
+  animation: pulseCheck 2s infinite;
 }
 
-@keyframes pulseCheck{
-0%{transform:scale(1)}
-50%{transform:scale(1.18)}
-100%{transform:scale(1)}
+@keyframes pulseCheck {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
+
+/* ═══════════════════════════════════════════════════════
+   WAVE ANIMATION for decorative water elements
+═══════════════════════════════════════════════════════ */
+
+@keyframes waveFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes deepCurrentA {
+  0%   { transform: translateX(0) scaleY(1); opacity: 0.7; }
+  50%  { transform: translateX(8px) scaleY(1.04); opacity: 1; }
+  100% { transform: translateX(0) scaleY(1); opacity: 0.7; }
+}
+
+@keyframes deepCurrentB {
+  0%   { transform: translateX(0) scaleY(1); opacity: 0.55; }
+  50%  { transform: translateX(-6px) scaleY(0.97); opacity: 0.85; }
+  100% { transform: translateX(0) scaleY(1); opacity: 0.55; }
+}
+
+/* ─── Utility: apply to any decorative ocean/river element ─── */
+.ocean-wave {
+  background: linear-gradient(
+    270deg,
+    #0a64b4, #00bcd4, #0284c7, #00acc1, #0a64b4
+  );
+  background-size: 300% 300%;
+  animation: waveFlow 6s ease-in-out infinite;
+}
+
+.river-current {
+  animation: deepCurrentA 3.5s ease-in-out infinite;
+}
+
+.river-current-alt {
+  animation: deepCurrentB 4.2s ease-in-out infinite;
+}
+

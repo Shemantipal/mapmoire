@@ -24,6 +24,7 @@ export function StoryMap() {
   const mapInstanceRef = useRef<import("maplibre-gl").Map | null>(null);
   const markersRef = useRef<import("maplibre-gl").Marker[]>([]);
   const touristMarkersRef = useRef<import("maplibre-gl").Marker[]>([]);
+  const animFrameRef = useRef<number | null>(null);
 
   const [selectedPlace, setSelectedPlace] = useState<Place>(defaultPlaces[0]);
   const [isTouring, setIsTouring] = useState(false);
@@ -109,6 +110,71 @@ export function StoryMap() {
     loadCompletedCities();
   }, []);
 
+  /* ─────────────────────────── animated water ─────────────────────────── */
+
+  const startOceanAnimation = (map: import("maplibre-gl").Map) => {
+    let tick = 0;
+
+    const animate = () => {
+      tick += 0.012;
+
+      // Animate ocean color between deep teal and bioluminescent cyan
+      const r1 = Math.round(10 + Math.sin(tick * 0.7) * 6);
+      const g1 = Math.round(100 + Math.sin(tick * 0.5) * 22);
+      const b1 = Math.round(180 + Math.sin(tick * 0.9) * 30);
+
+      const r2 = Math.round(0 + Math.sin(tick * 0.4) * 8);
+      const g2 = Math.round(180 + Math.cos(tick * 0.6) * 28);
+      const b2 = Math.round(220 + Math.sin(tick * 1.1) * 20);
+
+      const oceanColor = `rgb(${r1},${g1},${b1})`;
+      const riverColor = `rgb(${r2},${g2},${b2})`;
+
+      // Pulse opacity for shimmer effect
+      const shimmerOpacity = 0.88 + Math.sin(tick * 1.8) * 0.1;
+      const riverOpacity = 0.92 + Math.sin(tick * 2.2) * 0.07;
+
+      // Animate river line width for flow feeling
+      const riverWidth = 3.5 + Math.sin(tick * 1.5) * 0.8;
+
+      const style = map.getStyle();
+      if (!style?.layers) {
+        animFrameRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      style.layers.forEach((layer) => {
+        const id = layer.id.toLowerCase();
+        try {
+          if (id.includes("water") || id.includes("ocean") || id.includes("sea") || id.includes("lake")) {
+            if (layer.type === "fill") {
+              map.setPaintProperty(layer.id, "fill-color", oceanColor);
+              map.setPaintProperty(layer.id, "fill-opacity", shimmerOpacity);
+            }
+            if (layer.type === "line") {
+              map.setPaintProperty(layer.id, "line-color", riverColor);
+              map.setPaintProperty(layer.id, "line-width", riverWidth);
+              map.setPaintProperty(layer.id, "line-opacity", riverOpacity);
+            }
+          }
+          if (id.includes("river") || id.includes("stream") || id.includes("canal")) {
+            if (layer.type === "line") {
+              map.setPaintProperty(layer.id, "line-color", riverColor);
+              map.setPaintProperty(layer.id, "line-width", riverWidth * 0.85);
+              map.setPaintProperty(layer.id, "line-opacity", riverOpacity);
+            }
+          }
+        } catch {
+          // ignore layers that don't support these properties
+        }
+      });
+
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+  };
+
   /* ─────────────────────────── map init ─────────────────────────── */
 
   useEffect(() => {
@@ -141,6 +207,7 @@ export function StoryMap() {
         styleMapLayers(map);
         addRouteLayer(map);
         addEmojiMarkers(maplibregl, map);
+        startOceanAnimation(map);
 
         if (!map.getLayer("rishikesh-memory-crystal")) {
           map.addLayer(
@@ -161,6 +228,9 @@ export function StoryMap() {
     loadMap();
 
     return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
       touristMarkersRef.current.forEach((m) => m.remove());
@@ -260,11 +330,11 @@ export function StoryMap() {
       try {
         if (id.includes("water") || id.includes("river")) {
           if (layer.type === "fill") {
-            map.setPaintProperty(layer.id, "fill-color", "#38bdf8");
-            map.setPaintProperty(layer.id, "fill-opacity", 0.95);
+            map.setPaintProperty(layer.id, "fill-color", "#0a64b4");
+            map.setPaintProperty(layer.id, "fill-opacity", 0.96);
           }
           if (layer.type === "line") {
-            map.setPaintProperty(layer.id, "line-color", "#00bfff");
+            map.setPaintProperty(layer.id, "line-color", "#00e5ff");
             map.setPaintProperty(layer.id, "line-width", 4);
             map.setPaintProperty(layer.id, "line-opacity", 1);
           }
@@ -440,197 +510,221 @@ export function StoryMap() {
   /* ─────────────────────────── render ─────────────────────────── */
 
   return (
-    <section className="relative overflow-hidden bg-zinc-950" style={{ height: "calc(100vh - 64px)" }}>
-      {/* ── MAP ── */}
-      <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+  <section
+    className="relative overflow-hidden bg-[#e8d7b7]"
+    style={{ height: "calc(100vh - 64px)" }}
+  >
+    <div ref={mapRef} className="absolute inset-0 h-full w-full" />
 
-      {/* Vignette */}
-      <div className="pointer-events-none absolute inset-0 z-[5]"
-        style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(2,6,23,0.55) 100%)" }} />
+    <div className="pointer-events-none absolute inset-0 z-[4] bg-[#e8d7b7]/10" />
 
-      {/* ── TOP HUD BAR ── */}
-      <div className="absolute top-4 left-1/2 z-20 -translate-x-1/2 flex items-center gap-3">
-        {/* Brand pill */}
-        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-zinc-900/90 px-4 py-2 shadow-xl backdrop-blur-xl">
-          <Map className="h-4 w-4 text-pink-400" />
-          <span className="text-sm font-bold tracking-widest text-white uppercase">Mapmoire</span>
+    <div
+      className="pointer-events-none absolute inset-0 z-[5]"
+      style={{
+        background:
+          "radial-gradient(ellipse at center, transparent 45%, rgba(43,22,11,0.38) 100%)",
+      }}
+    />
+
+    {/* TOP LANDING BAR */}
+   <div className="absolute right-6 top-6 z-20 w-[min(46vw,620px)]">
+      <div className="overflow-hidden rounded-[1.35rem] border-2 border-[#4f2a12] bg-[#f3dfb9]/95 shadow-[5px_5px_0_#8b2e16] backdrop-blur-xl">
+        <div className="border-b border-[#7b4b24]/25 bg-[#d9bd8d] px-5 py-1.5 text-center">
+          <p className="font-serif text-[9px] uppercase tracking-[.35em] text-[#5a3218]">
+            ✦ Mapmoire Story Map ✦ Build your travel archive ✦
+          </p>
         </div>
 
-        {/* XP badge */}
-        <div className="flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-zinc-900/90 px-3 py-2 shadow-xl backdrop-blur-xl">
-          <Zap className="h-3.5 w-3.5 text-yellow-400" />
-          <span className="text-xs font-bold text-yellow-300">+25 XP / Capsule</span>
-        </div>
+       <div className="space-y-3 p-4">
+          <div>
+           <h1 className="font-serif text-2xl font-black leading-none text-[#2b160b] md:text-3xl">
+              Pin places. Save{" "}
+              <span className="text-[#8b2e16]">story capsules.</span>
+            </h1>
 
-        {/* Completed counter */}
-        <div className="flex items-center gap-1.5 rounded-full border border-pink-400/20 bg-zinc-900/90 px-3 py-2 shadow-xl backdrop-blur-xl">
-          <span className="text-xs font-bold text-pink-300">
-            {completedCities.length} / {defaultPlaces.length} visited
-          </span>
-        </div>
-      </div>
+            <p className="mt-2 max-w-xl font-serif text-sm italic text-[#5a3218]">
+              Search any place, open its travel card, and seal your memory with
+              photos, songs, moods and hidden gems.
+            </p>
 
-      {/* ── TOP-LEFT CONTROLS ── */}
-      <div className="absolute left-4 top-20 z-20 flex flex-col gap-2">
-        {/* Search toggle */}
-        <button
-          onClick={() => setSearchOpen((v) => !v)}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-zinc-900/90 text-white shadow-xl backdrop-blur-xl transition hover:bg-zinc-800"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-
-        {/* Tour button */}
-        <button
-          onClick={startMiniTour}
-          disabled={isTouring}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-pink-500/30 bg-pink-600/80 text-white shadow-xl backdrop-blur-xl transition hover:bg-pink-500 disabled:opacity-50"
-        >
-          {isTouring ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        </button>
-
-        {/* Compass */}
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-zinc-900/90 text-white shadow-xl backdrop-blur-xl">
-          <Compass className="h-4 w-4 text-sky-400" />
-        </div>
-      </div>
-
-      {/* ── SEARCH DROPDOWN ── */}
-      <AnimatePresence>
-        {searchOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="absolute left-16 top-20 z-30 w-72 rounded-2xl border border-white/10 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur-2xl"
-          >
-            <SearchPlace onSearch={(q) => { handleSearch(q); setSearchOpen(false); }} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── BOTTOM HUD: place info tab ── */}
-      {/* Collapsed trigger chip */}
-      <AnimatePresence>
-        {!panelOpen && (
-          <motion.button
-            key="chip"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            onClick={() => setPanelOpen(true)}
-            className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900/95 px-5 py-3 shadow-2xl backdrop-blur-xl transition hover:bg-zinc-800"
-          >
-            <span className="text-lg">{selectedPlace.emoji}</span>
-            <span className="text-sm font-semibold text-white">{selectedPlace.name}</span>
-            <span className="rounded-full bg-pink-600/20 px-2 py-0.5 text-xs text-pink-300">{selectedPlace.mood}</span>
-            <ChevronRight className="h-4 w-4 rotate-90 text-zinc-400" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* ── EXPANDED SIDE PANEL ── */}
-      <AnimatePresence>
-        {panelOpen && (
-          <motion.div
-            key="panel"
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="absolute bottom-0 left-0 top-0 z-30 flex w-[340px] flex-col overflow-hidden border-r border-white/8 bg-zinc-950/95 shadow-2xl backdrop-blur-2xl"
-          >
-            {/* Panel header */}
-            <div className="relative flex-shrink-0">
-              {/* Cover image */}
-              <div
-                className="h-40 w-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${selectedPlace.image})` }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-
-              {/* Close */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-[#7b4b24]/35 bg-[#fff3dc] px-3 py-1 font-serif text-[11px] text-[#4b260f]">
+                ⚓ {completedCities.length}/{defaultPlaces.length} visited
+              </span>
+              <span className="rounded-full border border-[#7b4b24]/35 bg-[#fff3dc] px-3 py-1 font-serif text-[11px] text-[#4b260f]">
+                ⚡ +25 XP per capsule
+              </span>
               <button
-                onClick={() => setPanelOpen(false)}
-                className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur"
+                onClick={startMiniTour}
+                disabled={isTouring}
+                className="rounded-full border border-[#8b2e16]/35 bg-[#8b2e16] px-3 py-1 font-serif text-[11px] font-black uppercase tracking-widest text-[#fff3dc] hover:bg-[#c23a16] disabled:opacity-50"
               >
-                <X className="h-3.5 w-3.5" />
+                {isTouring ? "Touring..." : "Play mini tour"}
               </button>
+            </div>
+          </div>
 
-              {/* Place name overlay */}
-              <div className="absolute bottom-3 left-4">
+         <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/90 p-2">
+            <SearchPlace
+              onSearch={(q) => {
+                handleSearch(q);
+                setSearchOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* FLOATING SELECTED PLACE CHIP */}
+    <AnimatePresence>
+      {!panelOpen && (
+        <motion.button
+          key="chip"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 24 }}
+          onClick={() => setPanelOpen(true)}
+          className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border-2 border-[#4f2a12] bg-[#f3dfb9]/95 px-5 py-3 shadow-[4px_4px_0_#8b2e16] backdrop-blur-xl"
+        >
+          <span className="text-xl">{selectedPlace.emoji}</span>
+          <span className="font-serif text-sm font-black text-[#2b160b]">
+            {selectedPlace.name}
+          </span>
+          <span className="rounded-full bg-[#8b2e16]/10 px-2 py-0.5 font-serif text-xs text-[#8b2e16]">
+            {selectedPlace.mood}
+          </span>
+          <ChevronRight className="h-4 w-4 rotate-90 text-[#7b4b24]" />
+        </motion.button>
+      )}
+    </AnimatePresence>
+
+    {/* BEAUTIFUL WIDE PANEL */}
+    <AnimatePresence>
+      {panelOpen && (
+        <motion.div
+          key="panel"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          transition={{ type: "spring", damping: 28, stiffness: 240 }}
+   className="absolute bottom-6 left-6 top-24 z-30 flex w-[min(92vw,500px)] flex-col overflow-hidden rounded-[1.5rem] border-2 border-[#4f2a12] bg-[#f3dfb9]/96 shadow-[6px_6px_0_#8b2e16] backdrop-blur-2xl"
+        >
+          <div className="border-b border-[#7b4b24]/25 bg-[#d9bd8d] px-5 py-2 text-center">
+            <p className="font-serif text-[9px] uppercase tracking-[.35em] text-[#5a3218]">
+              ✦ Create Travel Memory ✦
+            </p>
+          </div>
+
+          <div className="relative flex-shrink-0">
+            <div
+            className="h-36 w-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${selectedPlace.image})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#2b160b]/80 via-[#2b160b]/25 to-transparent" />
+
+            <button
+              onClick={() => setPanelOpen(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-[#7b4b24]/40 bg-[#fff3dc]/90 text-[#4b260f] shadow-sm"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="absolute bottom-4 left-5 right-5 flex items-end justify-between gap-3">
+              <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{selectedPlace.emoji}</span>
+                  <span className="text-3xl">{selectedPlace.emoji}</span>
                   <div>
-                    <h2 className="text-xl font-black text-white leading-tight">{selectedPlace.name}</h2>
-                    <p className="text-xs text-zinc-400">{selectedPlace.state}</p>
+                    <h2 className="font-serif text-3xl font-black leading-none text-[#fff3dc]">
+                      {selectedPlace.name}
+                    </h2>
+                    <p className="mt-1 font-serif text-xs uppercase tracking-widest text-[#f8ead0]/80">
+                      {selectedPlace.state}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Mood badge */}
-              <div className="absolute right-3 bottom-3">
-                <span className="rounded-full border border-pink-500/30 bg-pink-900/50 px-2.5 py-1 text-xs font-semibold text-pink-300">
-                  {selectedPlace.mood}
-                </span>
-              </div>
+              <span className="rounded-full border border-[#fff3dc]/40 bg-[#fff3dc]/90 px-3 py-1 font-serif text-xs font-black text-[#8b2e16]">
+                {selectedPlace.mood}
+              </span>
             </div>
+          </div>
 
-            {/* Scrollable content */}
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-              {/* Story snippet */}
-              <p className="text-sm leading-relaxed text-zinc-400">{selectedPlace.story}</p>
+          <div className="flex-1 overflow-y-auto p-5">
+            <div className="grid gap-4">
+              <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/70 p-4">
+                <p className="font-serif text-sm leading-relaxed text-[#5a3218]">
+                  {selectedPlace.story}
+                </p>
+              </div>
 
-              {/* Quick stats row */}
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { label: "Spots", value: selectedPlace.spots?.length ?? 0, icon: "📍" },
-                  { label: "Status", value: completedCities.includes(selectedPlace.name) ? "Done ✓" : "Pending", icon: "🎯" },
+                  {
+                    label: "Spots",
+                    value: selectedPlace.spots?.length ?? 0,
+                    icon: "📍",
+                  },
+                  {
+                    label: "Status",
+                    value: completedCities.includes(selectedPlace.name)
+                      ? "Done"
+                      : "Pending",
+                    icon: "🎯",
+                  },
                   { label: "XP", value: "+25", icon: "⚡" },
                 ].map((stat) => (
-                  <div key={stat.label} className="flex flex-col items-center rounded-xl border border-white/5 bg-white/4 py-3">
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl border border-[#7b4b24]/30 bg-[#ead7b5] p-3 text-center shadow-sm"
+                  >
                     <span className="text-lg">{stat.icon}</span>
-                    <span className="mt-1 text-xs font-bold text-white">{stat.value}</span>
-                    <span className="text-[10px] text-zinc-500">{stat.label}</span>
+                    <p className="mt-1 font-serif text-sm font-black text-[#2b160b]">
+                      {stat.value}
+                    </p>
+                    <p className="font-serif text-[9px] uppercase tracking-widest text-[#7b4b24]">
+                      {stat.label}
+                    </p>
                   </div>
                 ))}
               </div>
 
-              {/* Place story card */}
-              <PlaceStoryCard place={selectedPlace} />
+              <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/70 p-3">
+                <PlaceStoryCard place={selectedPlace} />
+              </div>
 
-              {/* Capsule */}
-              <StoryCapsule
-                place={selectedPlace}
-                onCapsuleAdded={(cityName) => {
-                  setCompletedCities((prev) =>
-                    prev.includes(cityName) ? prev : [...prev, cityName]
-                  );
-                }}
-              />
+             <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/70 p-3">
+                <StoryCapsule
+                  place={selectedPlace}
+                  onCapsuleAdded={(cityName) => {
+                    setCompletedCities((prev) =>
+                      prev.includes(cityName) ? prev : [...prev, cityName]
+                    );
+                  }}
+                />
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
 
-      {/* ── LEGEND chip (bottom-right, won't overlap nav controls) ── */}
-      <div className="absolute bottom-20 right-4 z-20 hidden rounded-2xl border border-white/8 bg-zinc-900/90 p-3 shadow-xl backdrop-blur-xl lg:block">
-        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Legend</p>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-5 rounded-full bg-pink-500" />
-            <span className="text-[11px] text-zinc-300">Memory route</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-5 rounded-full bg-sky-400" />
-            <span className="text-[11px] text-zinc-300">Rivers</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base leading-none">✓</span>
-            <span className="text-[11px] text-zinc-300">Visited city</span>
-          </div>
-        </div>
+    {/* LEGEND */}
+<div
+  className={`${
+    panelOpen ? "hidden" : "hidden lg:block"
+  } absolute bottom-6 right-5 z-20 rounded-2xl border-2 border-[#4f2a12]/60 bg-[#f3dfb9]/95 p-3 shadow-[4px_4px_0_#8b2e16] backdrop-blur-xl`}
+>
+      <p className="mb-2 font-serif text-[10px] font-black uppercase tracking-widest text-[#7b4b24]">
+        Legend
+      </p>
+      <div className="flex flex-col gap-1.5 font-serif text-[11px] text-[#4b260f]">
+        <span>🌸 Memory route</span>
+        <span>🌊 Rivers</span>
+        <span>✓ Visited city</span>
       </div>
-    </section>
-  );
+    </div>
+  </section>
+);
 }

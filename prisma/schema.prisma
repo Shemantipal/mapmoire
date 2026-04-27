@@ -9,12 +9,14 @@ datasource db {
 
 model StoryCapsule {
   id          String   @id @default(cuid())
-
   userId      String
 
   placeName   String
   state       String?
-  mood       String?
+  mood        String?
+
+  overhyped   String?
+  hiddenGem   String?
 
   lat         Float?
   lng         Float?
@@ -22,13 +24,11 @@ model StoryCapsule {
   caption     String?
   quote       String?
 
-
   songTitle   String?
   artist      String?
   spotifyUrl  String?
   previewUrl  String?
   albumArt    String?
-
 
   images      String[]
 
@@ -51,4 +51,23 @@ model ShareLink {
 
   @@index([userId])      
   @@index([placeName])   
+}
+
+model CapsuleReaction {
+  id        String   @id @default(cuid())
+  capsuleId String
+  emoji     String   @default("❤️")
+  createdAt DateTime @default(now())
+
+  @@index([capsuleId])
+}
+
+model CapsuleComment {
+  id        String   @id @default(cuid())
+  capsuleId String
+  name      String?
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@index([capsuleId])
 }

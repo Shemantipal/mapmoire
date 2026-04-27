@@ -22,6 +22,8 @@ type Props = {
     images: string[];
     selectedSong: Track | null;
     mood: MoodTag | null;
+    overhyped: string;
+    hiddenGem: string;
   }) => Promise<void>;
   saving: boolean;
 };
@@ -36,6 +38,8 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
   const [selectedSong, setSelectedSong] = useState<Track | null>(null);
   const [searching, setSearching] = useState(false);
   const [mood, setMood] = useState<MoodTag | null>(null);
+  const [overhyped, setOverhyped] = useState("");
+  const [hiddenGem, setHiddenGem] = useState("");
 
   const searchSongs = async (q: string) => {
     setSongQuery(q);
@@ -59,7 +63,7 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
   };
 
   const handleSubmit = async () => {
-    await onSave({ caption, quote, images, selectedSong, mood });
+    await onSave({ caption, quote, images, selectedSong, mood, overhyped, hiddenGem });
     setCaption("");
     setQuote("");
     setImages([]);
@@ -67,6 +71,8 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
     setResults([]);
     setSelectedSong(null);
     setMood(null);
+    setOverhyped("");
+    setHiddenGem("");
   };
 
   const isEmpty =
@@ -149,6 +155,34 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
                 </div>
               </div>
 
+              {/* Overhyped */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-red-400/70">
+                  🙄 Overhyped Activities / Places
+                </p>
+                <textarea
+                  value={overhyped}
+                  onChange={(e) => setOverhyped(e.target.value)}
+                  placeholder={`What's not worth the hype in ${placeName}?`}
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-red-900/20 bg-red-950/10 px-3 py-2.5 text-sm text-amber-50 placeholder:text-red-900/40 focus:border-red-800/40 focus:outline-none focus:ring-0"
+                />
+              </div>
+
+              {/* Hidden Gem */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400/70">
+                  ✨ Best Tip / Hidden Gem
+                </p>
+                <textarea
+                  value={hiddenGem}
+                  onChange={(e) => setHiddenGem(e.target.value)}
+                  placeholder="Your secret find or must-know advice for future travellers…"
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-emerald-900/20 bg-emerald-950/10 px-3 py-2.5 text-sm text-amber-50 placeholder:text-emerald-900/40 focus:border-emerald-800/40 focus:outline-none focus:ring-0"
+                />
+              </div>
+
               {/* Song search */}
               <div className="space-y-2">
                 <div className="relative">
@@ -210,7 +244,7 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
                 )}
               </div>
 
-              {/* Image upload */}
+        
               <div>
                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-amber-800/30 bg-amber-950/20 py-3 text-xs text-amber-700 transition hover:border-amber-700/50 hover:text-amber-500">
                   <Camera className="h-3.5 w-3.5" />

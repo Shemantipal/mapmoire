@@ -42,18 +42,22 @@ export async function POST(req: Request) {
       userId,
 
       placeName: body.placeName,
-      state: body.state,
-      lat: body.lat,
-      lng: body.lng,
+      state: body.state || null,
+      lat: body.lat || null,
+      lng: body.lng || null,
 
-      caption: body.caption,
-      quote: body.quote,
+      caption: body.caption || null,
+      quote: body.quote || null,
 
-      songTitle: body.songTitle,
-      artist: body.artist,
-      spotifyUrl: body.spotifyUrl,
-      previewUrl: body.previewUrl,
-      albumArt: body.albumArt,
+      mood: body.mood || null,
+      overhyped: body.overhyped || null,
+      hiddenGem: body.hiddenGem || null,
+
+      songTitle: body.songTitle || null,
+      artist: body.artist || null,
+      spotifyUrl: body.spotifyUrl || null,
+      previewUrl: body.previewUrl || null,
+      albumArt: body.albumArt || null,
 
       images: body.images || [],
     },
