@@ -59,7 +59,9 @@ const uniqueCities = Array.from(
   new Set(
     capsules
       .map((c: { placeName: string | null }) => c.placeName)
-      .filter((placeName): placeName is string => Boolean(placeName))
+      .filter((placeName: string | null): placeName is string =>
+        Boolean(placeName)
+      )
   )
 );
 
