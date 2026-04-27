@@ -201,7 +201,7 @@ const uniqueCities: string[] = Array.from(
             </div>
 
             <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {capsules.map((capsule, index) => (
+              {capsules.map((capsule: any, index: number) => (
                 <article
                   key={capsule.id}
                   className="group relative overflow-hidden rounded-[1.35rem] border-[2.5px] border-[#4f2a12] bg-[#f3dfb9] text-[#2b160b] shadow-[5px_5px_0_#6f3f1d] transition-all duration-300 hover:-translate-y-1 hover:shadow-[8px_8px_0_#8b2e16]"
@@ -220,7 +220,7 @@ const uniqueCities: string[] = Array.from(
                           : "grid-cols-2"
                       }`}
                     >
-                      {capsule.images.slice(0, 2).map((img, i) => (
+                      {capsule.images.slice(0, 2).map((img: string, i: number) => (
                         <div
                           key={i}
                           className={`relative overflow-hidden ${
