@@ -55,13 +55,11 @@ export default async function SharedMemoryPage({
     orderBy: { createdAt: "desc" },
   });
 
-const uniqueCities = Array.from(
-  new Set(
+const uniqueCities: string[] = Array.from(
+  new Set<string>(
     capsules
       .map((c: { placeName: string | null }) => c.placeName)
-      .filter((placeName: string | null): placeName is string =>
-        Boolean(placeName)
-      )
+      .filter((placeName: string | null): placeName is string => Boolean(placeName))
   )
 );
 
