@@ -55,7 +55,13 @@ export default async function SharedMemoryPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const uniqueCities = Array.from(new Set(capsules.map((c) => c.placeName)));
+const uniqueCities = Array.from(
+  new Set(
+    capsules
+      .map((c: { placeName: string | null }) => c.placeName)
+      .filter((placeName): placeName is string => Boolean(placeName))
+  )
+);
 
   const rawName = share.userName?.trim() || "";
   const firstName = rawName.split(/\s+/)[0] || "Traveler";
