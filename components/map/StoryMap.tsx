@@ -2,69 +2,430 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-
-import { motion, AnimatePresence } from "framer-motion";
-import { Compass, Map, Zap, ChevronRight, X, Search, Play, Pause } from "lucide-react";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  fetchNearbyTouristPlaces,
-  type TouristPlace,
-} from "./tourist-places";
+  ArrowRight,
+  BookOpen,
+  Camera,
+  ChevronRight,
+  Compass,
+  Layers,
+  Map,
+  MapPin,
+  Menu,
+  Play,
+  Zap,
+  Globe2,
+  Lock,
+  Pause,
+  Ticket,
+  Mail
+} from "lucide-react";
 
+// Local imports (ensure these exist in your project)
+import { fetchNearbyTouristPlaces, type TouristPlace } from "./tourist-places";
 import { createThreeMemoryLayer } from "./three-memory-layer";
 import { StoryCapsule } from "./StoryCapsule";
-import { JourneyReplayButton } from "./JourneyReplayButton";
 import { SearchPlace } from "./SearchPlace";
 import { PlaceStoryCard } from "./PlaceStoryCard";
 import { defaultPlaces, type Place } from "./map-data";
 
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+
 type MapLibre = typeof import("maplibre-gl");
+
+// ----------------------------------------------------------------------
+// 1. VINTAGE CSS (Restored & Enhanced)
+// ----------------------------------------------------------------------
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  .mapmoire-page {
+    font-family: 'Inter', sans-serif;
+    background-color: #ead8b8;
+    color: #2b160b;
+  }
+
+  .mapmoire-serif {
+    font-family: "Playfair Display", serif;
+  }
+
+  /* Retro Markers */
+  .mapmoire-city-marker, .tourist-marker {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .marker-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: #fff3dc;
+    border: 3px solid #4b260f;
+    box-shadow: 4px 4px 0px #4b260f;
+    transition: all 0.2s ease;
+  }
+
+  .marker-wrap:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #4b260f;
+  }
+
+  .marker-wrap:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px #4b260f;
+  }
+
+  .marker-pin {
+    width: 18px;
+    height: 18px;
+    color: #4b260f;
+  }
+
+  .bucket-check {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #8b2e16;
+    color: #fff3dc;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff3dc;
+  }
+
+  .tourist-marker {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #e4c48a;
+    border: 2px solid #4b260f;
+    box-shadow: 3px 3px 0px #4b260f;
+  }
+
+  /* Vintage Popups */
+  .mapmoire-popup .maplibregl-popup-content {
+    background: #fff3dc;
+    border: 3px solid #4b260f;
+    border-radius: 0px;
+    padding: 12px 16px;
+    box-shadow: 6px 6px 0px #4b260f;
+    color: #4b260f;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .mapmoire-popup .maplibregl-popup-content strong {
+    display: block;
+    margin-bottom: 4px;
+    font-family: "Playfair Display", serif;
+    font-size: 16px;
+    color: #2b160b;
+  }
+
+  .mapmoire-popup .maplibregl-popup-content p {
+    margin: 0;
+    color: #68411f;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .mapmoire-popup .maplibregl-popup-tip {
+    display: none;
+  }
+
+  /* Retro Marquee Animation */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee 20s linear infinite;
+  }
+`;
+
+// ----------------------------------------------------------------------
+// 2. VINTAGE FILTERS & EFFECTS
+// ----------------------------------------------------------------------
+function VintageMapFilter() {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-0 z-[3] bg-[#d9b272]/30 mix-blend-multiply" />
+      <div className="pointer-events-none absolute inset-0 z-[4] bg-[#fff0c9]/20 mix-blend-screen" />
+      <div className="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(circle_at_50%_50%,transparent_40%,rgba(75,38,15,0.4)_100%)]" />
+      <div
+        className="pointer-events-none absolute inset-0 z-[6] opacity-[0.25] mix-blend-multiply"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E\")",
+        }}
+      />
+    </>
+  );
+}
+
+// ----------------------------------------------------------------------
+// 3. MODULAR UI COMPONENTS (Retro Styled)
+// ----------------------------------------------------------------------
+
+function RetroButton({ children, onClick, className = "", variant = "primary" }: any) {
+  const baseStyle = "flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider transition-all border-3 border-[#4b260f] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none";
+  const variants: any = {
+    primary: "bg-[#8b2e16] text-[#fff3dc] shadow-[4px_4px_0px_#4b260f] hover:bg-[#a63a1d]",
+    secondary: "bg-[#fff3dc] text-[#4b260f] shadow-[4px_4px_0px_#4b260f] hover:bg-[#ffeac2]",
+    ghost: "border-transparent hover:border-[#4b260f] shadow-none text-[#4b260f]"
+  };
+
+  return (
+    <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+function Navbar() {
+  return (
+    <header className="sticky top-0 z-50 border-b-4 border-[#4b260f] bg-[#ead8b8] shadow-[0_4px_0_rgba(75,38,15,0.1)]">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+          <div className="grid h-12 w-12 place-items-center bg-[#4b260f] text-[#fff3dc] shadow-[4px_4px_0_#8b2e16]">
+            <Map className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="mapmoire-serif text-2xl font-black leading-none text-[#2b160b]">
+              Mapmoire
+            </h1>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#8b2e16]">
+              Est. 2026
+            </p>
+          </div>
+        </div>
+
+        <nav className="hidden items-center gap-8 text-sm font-bold uppercase tracking-widest text-[#4b260f] md:flex">
+            <a href="/capsules" className="hover:text-[#8b2e16] hover:underline decoration-2 underline-offset-4">Capsules</a>
+        </nav>
+
+        <div className="hidden items-center gap-4 md:flex">
+          <SignInButton mode="modal">
+            <button className="font-bold uppercase tracking-widest text-[#4b260f] hover:text-[#8b2e16]">Sign In</button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <div className="inline-block">
+              <RetroButton variant="primary">Start Mapping</RetroButton>
+            </div>
+          </SignUpButton>
+        </div>
+
+        <button className="grid h-12 w-12 place-items-center border-3 border-[#4b260f] bg-[#fff3dc] shadow-[4px_4px_0_#4b260f] md:hidden">
+          <Menu className="h-6 w-6 text-[#4b260f]" />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Marquee() {
+  return (
+    <div className="flex overflow-hidden border-b-4 border-t-4 border-[#4b260f] bg-[#8b2e16] py-3 text-[#fff3dc]">
+      <div className="animate-marquee flex whitespace-nowrap text-sm font-black uppercase tracking-[0.2em]">
+        <span className="mx-4">✦ THE STORY-FIRST TRAVEL MAP</span>
+        <span className="mx-4">✦ NO ALGORITHMS, JUST MEMORIES</span>
+        <span className="mx-4">✦ YOUR PERSONAL ATLAS</span>
+        <span className="mx-4">✦ THE STORY-FIRST TRAVEL MAP</span>
+        <span className="mx-4">✦ NO ALGORITHMS, JUST MEMORIES</span>
+        <span className="mx-4">✦ YOUR PERSONAL ATLAS</span>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// 4. MAIN PAGE CONTENT COMPONENTS
+// ----------------------------------------------------------------------
+
+function HeroSection({ isTouring, onTour, onSearch, mapRef }: any) {
+  return (
+    <section className="relative overflow-hidden border-b-4 border-[#4b260f] px-6 py-20 lg:py-32">
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#4b260f_2px,transparent_2px)] [background-size:24px_24px]"></div>
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-16 lg:grid-cols-2 lg:items-center">
+        
+        {/* Left Copy */}
+        <div className="space-y-8">
+          <div className="inline-flex items-center gap-2 border-3 border-[#4b260f] bg-[#fff3dc] px-4 py-2 font-bold uppercase tracking-widest text-[#4b260f] shadow-[4px_4px_0_#4b260f]">
+            <Ticket className="h-4 w-4" />
+            <span>Admit One: Your Memories</span>
+          </div>
+
+          <h1 className="mapmoire-serif text-6xl font-black leading-[0.9] text-[#2b160b] md:text-8xl">
+            Document<br />The <span className="text-[#8b2e16] italic">Journey.</span>
+          </h1>
+          
+          <p className="max-w-md text-lg font-medium leading-relaxed text-[#5a3218]">
+            Mapmoire turns every coordinate into a living capsule. Photos, moods, and hidden gems wrapped in a warm, cinematic vintage atlas.
+          </p>
+
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <RetroButton variant="primary" onClick={onTour}>
+              {isTouring ? <Pause className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
+              {isTouring ? "Touring..." : "Start Mini Tour"}
+            </RetroButton>
+          </div>
+
+          {/* Search Box Retro Style */}
+          <div className="mt-8 border-3 border-[#4b260f] bg-[#fff3dc] p-4 shadow-[6px_6px_0_#4b260f]">
+            <p className="mb-2 text-xs font-black uppercase tracking-widest text-[#8b2e16]">Search Destination</p>
+            <SearchPlace onSearch={onSearch} />
+          </div>
+        </div>
+
+        {/* Right Map Canvas */}
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative h-[500px] w-full border-4 border-[#4b260f] bg-[#4b260f] shadow-[12px_12px_0_#8b2e16]"
+        >
+          {/* Decorative frame elements */}
+          <div className="absolute -left-3 -top-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
+          <div className="absolute -right-3 -top-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
+          <div className="absolute -left-3 -bottom-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
+          <div className="absolute -right-3 -bottom-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
+
+          {/* Map Container */}
+          <div className="relative h-full w-full overflow-hidden bg-[#d9b272]">
+            <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+            <VintageMapFilter />
+          </div>
+        </motion.div>
+
+      </div>
+    </section>
+  );
+}
+
+function FeatureGrid() {
+  const features = [
+    { icon: <Camera />, title: "Visual Capsules", text: "Attach polaroid-style memories to exact coordinates. No infinite scrolling, just locations." },
+    { icon: <Compass />, title: "Hidden Gems", text: "Log the unmapped diners, the quiet trails, and the specific park benches." },
+    { icon: <BookOpen />, title: "Story Archive", text: "A tactile database of your life's routing. Review your footprint beautifully." },
+  ];
+
+  return (
+    <section id="features" className="border-b-4 border-[#4b260f] bg-[#fff3dc] px-6 py-24">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-16 border-b-4 border-[#4b260f] pb-6">
+          <h2 className="mapmoire-serif text-5xl font-black text-[#2b160b]">The Manifesto.</h2>
+        </div>
+        
+        <div className="grid gap-8 md:grid-cols-3">
+          {features.map((f, i) => (
+            <div key={i} className="group relative border-4 border-[#4b260f] bg-[#ead8b8] p-8 shadow-[8px_8px_0_#4b260f] transition-transform hover:-translate-y-2 hover:shadow-[12px_12px_0_#8b2e16]">
+              <div className="mb-6 inline-grid h-16 w-16 place-items-center border-3 border-[#4b260f] bg-[#fff3dc] text-[#8b2e16] shadow-[4px_4px_0_#4b260f]">
+                {f.icon}
+              </div>
+              <h3 className="mapmoire-serif mb-4 text-2xl font-black text-[#2b160b]">{f.title}</h3>
+              <p className="font-medium leading-relaxed text-[#5a3218]">{f.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <section className="border-b-4 border-[#4b260f] bg-[#ead8b8] px-6 py-24">
+      <div className="mx-auto max-w-4xl text-center">
+        <h2 className="mapmoire-serif mb-12 text-5xl font-black text-[#2b160b]">How To Archive.</h2>
+        
+        <div className="space-y-8 text-left">
+          {[
+            { num: "01", title: "Pin a Coordinate", desc: "Search any location globally and drop a heavy vintage pin." },
+            { num: "02", title: "Seal the Capsule", desc: "Upload the photos, set the mood tag, and write the story." },
+            { num: "03", title: "Review the Canvas", desc: "Watch your blank map slowly fill with ticked boxes and personal routes." }
+          ].map((step, i) => (
+            <div key={i} className="flex items-center gap-6 border-4 border-[#4b260f] bg-[#fff3dc] p-6 shadow-[6px_6px_0_#4b260f]">
+              <div className="mapmoire-serif text-4xl font-black text-[#8b2e16]">{step.num}</div>
+              <div>
+                <h4 className="text-xl font-bold uppercase tracking-wider text-[#2b160b]">{step.title}</h4>
+                <p className="mt-1 font-medium text-[#5a3218]">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-[#2b160b] px-6 py-12 text-[#ead8b8]">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row border-4 border-[#ead8b8] p-8">
+        <div>
+          <h2 className="mapmoire-serif text-3xl font-black">Mapmoire</h2>
+          <p className="mt-2 text-sm uppercase tracking-widest text-[#c2a878]">The Analog Travel Log</p>
+        </div>
+        <div className="flex gap-4">
+          <Button variant="outline" className="border-2 border-[#ead8b8] text-[#ead8b8] hover:bg-[#ead8b8] hover:text-[#2b160b] rounded-none uppercase tracking-widest font-bold">
+             Newsletter
+          </Button>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ----------------------------------------------------------------------
+// 5. MAIN MAP APPLICATION LOGIC
+// ----------------------------------------------------------------------
 
 export function StoryMap() {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<import("maplibre-gl").Map | null>(null);
   const markersRef = useRef<import("maplibre-gl").Marker[]>([]);
   const touristMarkersRef = useRef<import("maplibre-gl").Marker[]>([]);
-  const animFrameRef = useRef<number | null>(null);
-
+  
   const [selectedPlace, setSelectedPlace] = useState<Place>(defaultPlaces[0]);
   const [isTouring, setIsTouring] = useState(false);
   const [completedCities, setCompletedCities] = useState<string[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  /* ─────────────────────────── marker helpers ─────────────────────────── */
-
-  const renderCityMarkerHTML = (place: Place, completed: string[]) => {
-    const isCompleted = completed.includes(place.name);
-    return `
-      <span class="mapmoire-city-glow"></span>
-      <span class="mapmoire-city-emoji">${place.emoji}</span>
-      ${isCompleted ? `<span class="bucket-check">✓</span>` : ""}
-    `;
-  };
 
   useEffect(() => {
-    markersRef.current.forEach((marker) => {
-      const el = marker.getElement() as any;
-      if (el.updateMarker) el.updateMarker();
-    });
-  }, [completedCities]);
+    if (document.getElementById("mapmoire-css")) return;
+    const style = document.createElement("style");
+    style.id = "mapmoire-css";
+    style.textContent = CSS;
+    document.head.appendChild(style);
+  }, []);
 
-  const updateCompletedCityTicks = (
-    map: import("maplibre-gl").Map,
-    cities: string[]
-  ) => {
-    const completedSet = cities.map((c) => c.toLowerCase().trim());
+  const updateCompletedCityTicks = (map: import("maplibre-gl").Map, cities: string[]) => {
+    const completedSet = cities.map((city) => city.toLowerCase().trim());
     const features = defaultPlaces
       .filter((place) => completedSet.includes(place.name.toLowerCase().trim()))
       .map((place) => ({
         type: "Feature" as const,
         properties: { name: place.name },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [place.coords[1], place.coords[0]],
-        },
+        geometry: { type: "Point" as const, coordinates: [place.coords[1], place.coords[0]] },
       }));
+
     const data = { type: "FeatureCollection" as const, features };
 
     if (map.getSource("completed-city-ticks")) {
@@ -79,25 +440,17 @@ export function StoryMap() {
       source: "completed-city-ticks",
       layout: {
         "text-field": "✓",
-        "text-size": 44,
+        "text-size": 38,
         "text-offset": [0, -1.7],
         "text-anchor": "bottom",
-        "text-allow-overlap": true,
-        "text-ignore-placement": true,
       },
       paint: {
-        "text-color": "#ff2d9c",
-        "text-halo-color": "#ffffff",
+        "text-color": "#8b2e16",
+        "text-halo-color": "#fff3dc",
         "text-halo-width": 3,
-        "text-halo-blur": 0.5,
       },
     });
   };
-
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-    updateCompletedCityTicks(mapInstanceRef.current, completedCities);
-  }, [completedCities]);
 
   useEffect(() => {
     async function loadCompletedCities() {
@@ -110,280 +463,50 @@ export function StoryMap() {
     loadCompletedCities();
   }, []);
 
-  /* ─────────────────────────── animated water ─────────────────────────── */
-
-  const startOceanAnimation = (map: import("maplibre-gl").Map) => {
-    let tick = 0;
-
-    const animate = () => {
-      tick += 0.012;
-
-      // Animate ocean color between deep teal and bioluminescent cyan
-      const r1 = Math.round(10 + Math.sin(tick * 0.7) * 6);
-      const g1 = Math.round(100 + Math.sin(tick * 0.5) * 22);
-      const b1 = Math.round(180 + Math.sin(tick * 0.9) * 30);
-
-      const r2 = Math.round(0 + Math.sin(tick * 0.4) * 8);
-      const g2 = Math.round(180 + Math.cos(tick * 0.6) * 28);
-      const b2 = Math.round(220 + Math.sin(tick * 1.1) * 20);
-
-      const oceanColor = `rgb(${r1},${g1},${b1})`;
-      const riverColor = `rgb(${r2},${g2},${b2})`;
-
-      // Pulse opacity for shimmer effect
-      const shimmerOpacity = 0.88 + Math.sin(tick * 1.8) * 0.1;
-      const riverOpacity = 0.92 + Math.sin(tick * 2.2) * 0.07;
-
-      // Animate river line width for flow feeling
-      const riverWidth = 3.5 + Math.sin(tick * 1.5) * 0.8;
-
-      const style = map.getStyle();
-      if (!style?.layers) {
-        animFrameRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
-      style.layers.forEach((layer) => {
-        const id = layer.id.toLowerCase();
-        try {
-          if (id.includes("water") || id.includes("ocean") || id.includes("sea") || id.includes("lake")) {
-            if (layer.type === "fill") {
-              map.setPaintProperty(layer.id, "fill-color", oceanColor);
-              map.setPaintProperty(layer.id, "fill-opacity", shimmerOpacity);
-            }
-            if (layer.type === "line") {
-              map.setPaintProperty(layer.id, "line-color", riverColor);
-              map.setPaintProperty(layer.id, "line-width", riverWidth);
-              map.setPaintProperty(layer.id, "line-opacity", riverOpacity);
-            }
-          }
-          if (id.includes("river") || id.includes("stream") || id.includes("canal")) {
-            if (layer.type === "line") {
-              map.setPaintProperty(layer.id, "line-color", riverColor);
-              map.setPaintProperty(layer.id, "line-width", riverWidth * 0.85);
-              map.setPaintProperty(layer.id, "line-opacity", riverOpacity);
-            }
-          }
-        } catch {
-          // ignore layers that don't support these properties
-        }
-      });
-
-      animFrameRef.current = requestAnimationFrame(animate);
-    };
-
-    animFrameRef.current = requestAnimationFrame(animate);
-  };
-
-  /* ─────────────────────────── map init ─────────────────────────── */
-
   useEffect(() => {
-    async function loadMap() {
-      const maplibregl: MapLibre = await import("maplibre-gl");
-      if (!mapRef.current || mapInstanceRef.current) return;
-
-      const map = new maplibregl.Map({
-        container: mapRef.current,
-        style: "https://tiles.openfreemap.org/styles/liberty",
-        center: [78.6569, 22.9734],
-        zoom: 5,
-        pitch: 45,
-        maxPitch: 70,
-        bearing: -12,
-        attributionControl: false,
-        canvasContextAttributes: { antialias: true },
-      });
-
-      mapInstanceRef.current = map;
-
-      map.addControl(
-        new maplibregl.NavigationControl({ visualizePitch: true }),
-        "bottom-right"
-      );
-
-      map.on("load", () => {
-        updateCompletedCityTicks(map, completedCities);
-        add3DTerrain(map, maplibregl);
-        styleMapLayers(map);
-        addRouteLayer(map);
-        addEmojiMarkers(maplibregl, map);
-        startOceanAnimation(map);
-
-        if (!map.getLayer("rishikesh-memory-crystal")) {
-          map.addLayer(
-            createThreeMemoryLayer({
-              id: "rishikesh-memory-crystal",
-              lng: 78.2676,
-              lat: 30.0869,
-              altitude: 65000,
-              color: "#ec4899",
-            })
-          );
-        }
-
-        loadTouristPlaces(defaultPlaces[0]);
-      });
-    }
-
-    loadMap();
-
-    return () => {
-      if (animFrameRef.current !== null) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
-      markersRef.current.forEach((m) => m.remove());
-      markersRef.current = [];
-      touristMarkersRef.current.forEach((m) => m.remove());
-      touristMarkersRef.current = [];
-      mapInstanceRef.current?.remove();
-      mapInstanceRef.current = null;
-    };
-  }, []);
-
-  /* ─────────────────────────── tourist places ─────────────────────────── */
-
-  const loadTouristPlaces = async (place: Place) => {
     if (!mapInstanceRef.current) return;
-    const maplibregl = await import("maplibre-gl");
-    const map = mapInstanceRef.current;
-
-    touristMarkersRef.current.forEach((m) => m.remove());
-    touristMarkersRef.current = [];
-
-    const places = await fetchNearbyTouristPlaces({
-      cityName: place.name,
-      lat: place.coords[0],
-      lng: place.coords[1],
+    updateCompletedCityTicks(mapInstanceRef.current, completedCities);
+    markersRef.current.forEach((marker) => {
+      const el = marker.getElement() as any;
+      el.updateMarker?.();
     });
+  }, [completedCities]);
 
-    places.forEach((spot: TouristPlace) => {
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = "tourist-marker";
-      el.innerHTML = `<span>${spot.emoji}</span>`;
-
-      const popup = new maplibregl.Popup({
-        offset: 20,
-        closeButton: false,
-        className: "mapmoire-popup",
-      }).setHTML(`
-        <div>
-          <strong>${spot.emoji} ${spot.name}</strong>
-          <p>${spot.type}</p>
-        </div>
-      `);
-
-      const marker = new maplibregl.Marker({ element: el, anchor: "center" })
-        .setLngLat([spot.coords[1], spot.coords[0]])
-        .setPopup(popup)
-        .addTo(map);
-
-      touristMarkersRef.current.push(marker);
-    });
-  };
-
-  /* ─────────────────────────── map helpers ─────────────────────────── */
-
-  const add3DTerrain = (map: import("maplibre-gl").Map, maplibregl: MapLibre) => {
-    if (!map.getSource("terrainSource")) {
-      map.addSource("terrainSource", {
-        type: "raster-dem",
-        tiles: ["https://demotiles.maplibre.org/terrain-tiles/{z}/{x}/{y}.png"],
-        encoding: "terrarium",
-        tileSize: 256,
-      });
-    }
-    if (!map.getSource("hillshadeSource")) {
-      map.addSource("hillshadeSource", {
-        type: "raster-dem",
-        tiles: ["https://demotiles.maplibre.org/terrain-tiles/{z}/{x}/{y}.png"],
-        encoding: "terrarium",
-        tileSize: 256,
-      });
-    }
-    if (!map.getLayer("hillshade")) {
-      map.addLayer({
-        id: "hillshade",
-        type: "hillshade",
-        source: "hillshadeSource",
-        paint: {
-          "hillshade-method": "standard",
-          "hillshade-illumination-direction": 315,
-          "hillshade-shadow-color": "#020617",
-          "hillshade-highlight-color": "#ffffff",
-          "hillshade-accent-color": "#22c55e",
-          "hillshade-exaggeration": 0.55,
-        },
-      });
-    }
-    map.setTerrain({ source: "terrainSource", exaggeration: 0.8 });
-    map.addControl(
-      new maplibregl.TerrainControl({ source: "terrainSource", exaggeration: 0.8 }),
-      "bottom-right"
-    );
-  };
-
+  // Vintage Style Application
   const styleMapLayers = (map: import("maplibre-gl").Map) => {
     const layers = map.getStyle().layers || [];
     layers.forEach((layer) => {
       const id = layer.id.toLowerCase();
       try {
         if (id.includes("water") || id.includes("river")) {
-          if (layer.type === "fill") {
-            map.setPaintProperty(layer.id, "fill-color", "#0a64b4");
-            map.setPaintProperty(layer.id, "fill-opacity", 0.96);
-          }
-          if (layer.type === "line") {
-            map.setPaintProperty(layer.id, "line-color", "#00e5ff");
-            map.setPaintProperty(layer.id, "line-width", 4);
-            map.setPaintProperty(layer.id, "line-opacity", 1);
-          }
+          if (layer.type === "fill") map.setPaintProperty(layer.id, "fill-color", "#968369");
+          if (layer.type === "line") map.setPaintProperty(layer.id, "line-color", "#8c795d");
         }
-        if (id.includes("boundary") || id.includes("border") || id.includes("admin")) {
-          if (layer.type === "line") {
-            map.setPaintProperty(layer.id, "line-color", "#020617");
-            map.setPaintProperty(layer.id, "line-width", 1.8);
-            map.setPaintProperty(layer.id, "line-opacity", 0.95);
-          }
+        if (id.includes("boundary") || id.includes("admin")) {
+          if (layer.type === "line") map.setPaintProperty(layer.id, "line-color", "#4b260f");
         }
         if (id.includes("land") || id.includes("background")) {
-          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#e9f5d8");
-          if (layer.type === "fill") map.setPaintProperty(layer.id, "fill-color", "#dcfce7");
-        }
-        if (id.includes("road") && layer.type === "line") {
-          map.setPaintProperty(layer.id, "line-color", "#f8fafc");
-          map.setPaintProperty(layer.id, "line-opacity", 0.5);
+          if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", "#ddc89b");
+          if (layer.type === "fill") map.setPaintProperty(layer.id, "fill-color", "#dcc79b");
         }
       } catch {}
     });
-  };
-
-  const addRouteLayer = (map: import("maplibre-gl").Map) => {
-    if (map.getSource("memory-route")) return;
-    const coordinates = defaultPlaces.slice(0, 10).map((p) => [p.coords[1], p.coords[0]]);
-    map.addSource("memory-route", {
-      type: "geojson",
-      data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } },
-    });
-    map.addLayer({ id: "memory-route-glow", type: "line", source: "memory-route", paint: { "line-color": "#38bdf8", "line-width": 9, "line-opacity": 0.35, "line-blur": 4 } });
-    map.addLayer({ id: "memory-route-main", type: "line", source: "memory-route", paint: { "line-color": "#ec4899", "line-width": 4, "line-opacity": 0.95, "line-dasharray": [2, 2] } });
   };
 
   const addEmojiMarkers = (maplibregl: MapLibre, map: import("maplibre-gl").Map) => {
     defaultPlaces.slice(0, 18).forEach((place) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.dataset.cityName = place.name;
       el.className = "mapmoire-city-marker";
 
       const updateMarker = () => {
-        const completed = completedCities
-          .map((c) => c.toLowerCase().trim())
-          .includes(place.name.toLowerCase().trim());
+        const completed = completedCities.map((c) => c.toLowerCase().trim()).includes(place.name.toLowerCase().trim());
         el.innerHTML = `
           <div class="marker-wrap">
-            <span class="mapmoire-city-glow"></span>
-            <span class="mapmoire-city-emoji">${place.emoji}</span>
+            <svg class="marker-pin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
             ${completed ? `<span class="bucket-check">✓</span>` : ""}
           </div>
         `;
@@ -394,29 +517,12 @@ export function StoryMap() {
 
       el.onclick = () => {
         setSelectedPlace(place);
-        loadTouristPlaces(place);
         setPanelOpen(true);
-        map.flyTo({
-          center: [place.coords[1], place.coords[0]],
-          zoom: 11.5,
-          pitch: 68,
-          bearing: -20,
-          duration: 2200,
-          essential: true,
-        });
+        map.flyTo({ center: [place.coords[1], place.coords[0]], zoom: 11, pitch: 60, duration: 1600 });
       };
 
-      const popup = new maplibregl.Popup({
-        offset: 28,
-        closeButton: false,
-        className: "mapmoire-popup",
-      }).setHTML(`
-        <div>
-          <strong>${place.emoji} ${place.name}</strong>
-          <p>${place.state}</p>
-          <p>${place.mood}</p>
-        </div>
-      `);
+      const popup = new maplibregl.Popup({ offset: 28, closeButton: false, className: "mapmoire-popup" })
+        .setHTML(`<div><strong>${place.name}</strong><p>${place.state}</p></div>`);
 
       const marker = new maplibregl.Marker({ element: el, anchor: "center" })
         .setLngLat([place.coords[1], place.coords[0]])
@@ -427,304 +533,126 @@ export function StoryMap() {
     });
   };
 
-  /* ─────────────────────────── search ─────────────────────────── */
+  useEffect(() => {
+    async function loadMap() {
+      const maplibregl: MapLibre = await import("maplibre-gl");
+      if (!mapRef.current || mapInstanceRef.current) return;
+
+      const map = new maplibregl.Map({
+        container: mapRef.current,
+        style: "https://tiles.openfreemap.org/styles/liberty",
+        center: [78.6569, 22.9734],
+        zoom: 4.5,
+        pitch: 45,
+        attributionControl: false,
+        interactive: true,
+      });
+
+      mapInstanceRef.current = map;
+
+      map.on("load", () => {
+        updateCompletedCityTicks(map, completedCities);
+        styleMapLayers(map);
+        addEmojiMarkers(maplibregl, map);
+      });
+    }
+
+    loadMap();
+
+    return () => {
+      markersRef.current.forEach((m) => m.remove());
+      touristMarkersRef.current.forEach((m) => m.remove());
+      mapInstanceRef.current?.remove();
+      mapInstanceRef.current = null;
+    };
+  }, []);
 
   const handleSearch = async (placeName: string) => {
     if (!placeName.trim() || !mapInstanceRef.current) return;
-
-    const localMatch = defaultPlaces.find((p) =>
-      p.name.toLowerCase().includes(placeName.toLowerCase())
-    );
-
+    const localMatch = defaultPlaces.find((p) => p.name.toLowerCase().includes(placeName.toLowerCase()));
+    
     if (localMatch) {
       setSelectedPlace(localMatch);
-      loadTouristPlaces(localMatch);
       setPanelOpen(true);
-      mapInstanceRef.current.flyTo({
-        center: [localMatch.coords[1], localMatch.coords[0]],
-        zoom: 12,
-        pitch: 70,
-        bearing: -24,
-        duration: 2400,
-        essential: true,
-      });
-      return;
+      mapInstanceRef.current.flyTo({ center: [localMatch.coords[1], localMatch.coords[0]], zoom: 11, duration: 1500 });
     }
-
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}`
-    );
-    const data = await response.json();
-    if (!data?.length) { alert("Place not found"); return; }
-
-    const result = data[0];
-    const lat = Number(result.lat);
-    const lon = Number(result.lon);
-
-    const searchedPlace: Place = {
-      name: result.display_name.split(",")[0],
-      state: result.display_name.split(",")[1]?.trim() || "Unknown",
-      coords: [lat, lon],
-      mood: "Discovered",
-      emoji: "📍",
-      image: `https://source.unsplash.com/900x600/?${encodeURIComponent(result.display_name.split(",")[0])},travel`,
-      story: `${result.display_name} is now pinned on your story map.`,
-      spots: [],
-    };
-
-    setSelectedPlace(searchedPlace);
-    loadTouristPlaces(searchedPlace);
-    setPanelOpen(true);
-
-    mapInstanceRef.current.flyTo({
-      center: [lon, lat],
-      zoom: 13.5,
-      pitch: 72,
-      bearing: -30,
-      duration: 2600,
-      essential: true,
-    });
   };
-
-  /* ─────────────────────────── tour ─────────────────────────── */
 
   const startMiniTour = async () => {
     if (!mapInstanceRef.current) return;
     setIsTouring(true);
-    for (const place of defaultPlaces.slice(0, 5)) {
+    for (const place of defaultPlaces.slice(0, 4)) {
       setSelectedPlace(place);
-      loadTouristPlaces(place);
-      mapInstanceRef.current.flyTo({
-        center: [place.coords[1], place.coords[0]],
-        zoom: 11.7,
-        pitch: 70,
-        bearing: -25,
-        duration: 2200,
-        essential: true,
-      });
-      await new Promise((resolve) => setTimeout(resolve, 2800));
+      mapInstanceRef.current.flyTo({ center: [place.coords[1], place.coords[0]], zoom: 10.6, pitch: 60, duration: 1600 });
+      await new Promise((res) => setTimeout(res, 2500));
     }
     setIsTouring(false);
   };
 
-  /* ─────────────────────────── render ─────────────────────────── */
-
   return (
-  <section
-    className="relative overflow-hidden bg-[#e8d7b7]"
-    style={{ height: "calc(100vh - 64px)" }}
-  >
-    <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+    <main className="mapmoire-page min-h-screen">
+      <Navbar />
+      <Marquee />
+      
+      <HeroSection 
+        isTouring={isTouring} 
+        onTour={startMiniTour} 
+        onSearch={handleSearch} 
+        mapRef={mapRef} 
+      />
 
-    <div className="pointer-events-none absolute inset-0 z-[4] bg-[#e8d7b7]/10" />
+      <FeatureGrid />
+      <HowItWorks />
+      <Footer />
 
-    <div
-      className="pointer-events-none absolute inset-0 z-[5]"
-      style={{
-        background:
-          "radial-gradient(ellipse at center, transparent 45%, rgba(43,22,11,0.38) 100%)",
-      }}
-    />
-
-    {/* TOP LANDING BAR */}
-   <div className="absolute right-6 top-6 z-20 w-[min(46vw,620px)]">
-      <div className="overflow-hidden rounded-[1.35rem] border-2 border-[#4f2a12] bg-[#f3dfb9]/95 shadow-[5px_5px_0_#8b2e16] backdrop-blur-xl">
-        <div className="border-b border-[#7b4b24]/25 bg-[#d9bd8d] px-5 py-1.5 text-center">
-          <p className="font-serif text-[9px] uppercase tracking-[.35em] text-[#5a3218]">
-            ✦ Mapmoire Story Map ✦ Build your travel archive ✦
-          </p>
-        </div>
-
-       <div className="space-y-3 p-4">
-          <div>
-           <h1 className="font-serif text-2xl font-black leading-none text-[#2b160b] md:text-3xl">
-              Pin places. Save{" "}
-              <span className="text-[#8b2e16]">story capsules.</span>
-            </h1>
-
-            <p className="mt-2 max-w-xl font-serif text-sm italic text-[#5a3218]">
-              Search any place, open its travel card, and seal your memory with
-              photos, songs, moods and hidden gems.
-            </p>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-[#7b4b24]/35 bg-[#fff3dc] px-3 py-1 font-serif text-[11px] text-[#4b260f]">
-                ⚓ {completedCities.length}/{defaultPlaces.length} visited
-              </span>
-              <span className="rounded-full border border-[#7b4b24]/35 bg-[#fff3dc] px-3 py-1 font-serif text-[11px] text-[#4b260f]">
-                ⚡ +25 XP per capsule
-              </span>
-              <button
-                onClick={startMiniTour}
-                disabled={isTouring}
-                className="rounded-full border border-[#8b2e16]/35 bg-[#8b2e16] px-3 py-1 font-serif text-[11px] font-black uppercase tracking-widest text-[#fff3dc] hover:bg-[#c23a16] disabled:opacity-50"
-              >
-                {isTouring ? "Touring..." : "Play mini tour"}
+      {/* Retro Side Panel */}
+      <AnimatePresence>
+        {panelOpen && (
+          <motion.div
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: "tween", duration: 0.3 }}
+            className="fixed bottom-0 right-0 top-0 z-[60] w-full max-w-md border-l-4 border-[#4b260f] bg-[#fff3dc] shadow-[-8px_0_0_rgba(75,38,15,0.2)] sm:w-[450px]"
+          >
+            {/* Panel Header */}
+            <div className="flex items-center justify-between border-b-4 border-[#4b260f] bg-[#ead8b8] p-6">
+              <h2 className="mapmoire-serif text-2xl font-black text-[#2b160b]">{selectedPlace.name}</h2>
+              <button onClick={() => setPanelOpen(false)} className="grid h-10 w-10 place-items-center border-3 border-[#4b260f] bg-[#fff3dc] shadow-[2px_2px_0_#4b260f] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
+                <ChevronRight className="h-6 w-6 text-[#4b260f]" />
               </button>
             </div>
-          </div>
 
-         <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/90 p-2">
-            <SearchPlace
-              onSearch={(q) => {
-                handleSearch(q);
-                setSearchOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* FLOATING SELECTED PLACE CHIP */}
-    <AnimatePresence>
-      {!panelOpen && (
-        <motion.button
-          key="chip"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 24 }}
-          onClick={() => setPanelOpen(true)}
-          className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border-2 border-[#4f2a12] bg-[#f3dfb9]/95 px-5 py-3 shadow-[4px_4px_0_#8b2e16] backdrop-blur-xl"
-        >
-          <span className="text-xl">{selectedPlace.emoji}</span>
-          <span className="font-serif text-sm font-black text-[#2b160b]">
-            {selectedPlace.name}
-          </span>
-          <span className="rounded-full bg-[#8b2e16]/10 px-2 py-0.5 font-serif text-xs text-[#8b2e16]">
-            {selectedPlace.mood}
-          </span>
-          <ChevronRight className="h-4 w-4 rotate-90 text-[#7b4b24]" />
-        </motion.button>
-      )}
-    </AnimatePresence>
-
-    {/* BEAUTIFUL WIDE PANEL */}
-    <AnimatePresence>
-      {panelOpen && (
-        <motion.div
-          key="panel"
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ type: "spring", damping: 28, stiffness: 240 }}
-   className="absolute bottom-6 left-6 top-24 z-30 flex w-[min(92vw,500px)] flex-col overflow-hidden rounded-[1.5rem] border-2 border-[#4f2a12] bg-[#f3dfb9]/96 shadow-[6px_6px_0_#8b2e16] backdrop-blur-2xl"
-        >
-          <div className="border-b border-[#7b4b24]/25 bg-[#d9bd8d] px-5 py-2 text-center">
-            <p className="font-serif text-[9px] uppercase tracking-[.35em] text-[#5a3218]">
-              ✦ Create Travel Memory ✦
-            </p>
-          </div>
-
-          <div className="relative flex-shrink-0">
-            <div
-            className="h-36 w-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${selectedPlace.image})` }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2b160b]/80 via-[#2b160b]/25 to-transparent" />
-
-            <button
-              onClick={() => setPanelOpen(false)}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-[#7b4b24]/40 bg-[#fff3dc]/90 text-[#4b260f] shadow-sm"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="absolute bottom-4 left-5 right-5 flex items-end justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">{selectedPlace.emoji}</span>
-                  <div>
-                    <h2 className="font-serif text-3xl font-black leading-none text-[#fff3dc]">
-                      {selectedPlace.name}
-                    </h2>
-                    <p className="mt-1 font-serif text-xs uppercase tracking-widest text-[#f8ead0]/80">
-                      {selectedPlace.state}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <span className="rounded-full border border-[#fff3dc]/40 bg-[#fff3dc]/90 px-3 py-1 font-serif text-xs font-black text-[#8b2e16]">
-                {selectedPlace.mood}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-5">
-            <div className="grid gap-4">
-              <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/70 p-4">
-                <p className="font-serif text-sm leading-relaxed text-[#5a3218]">
-                  {selectedPlace.story}
+            {/* Panel Content */}
+            <div className="h-full overflow-y-auto p-6 pb-24">
+              {/* Polaroid Image Frame */}
+              <div className="mb-6 border-4 border-[#4b260f] bg-white p-4 pb-12 shadow-[6px_6px_0_#4b260f]">
+                <div 
+                  className="h-48 w-full border-2 border-[#4b260f] bg-cover bg-center"
+                  style={{ backgroundImage: `url(${selectedPlace.image})` }}
+                />
+                <p className="mt-4 text-center font-bold uppercase tracking-widest text-[#4b260f]">
+                  {selectedPlace.state}
                 </p>
               </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  {
-                    label: "Spots",
-                    value: selectedPlace.spots?.length ?? 0,
-                    icon: "📍",
-                  },
-                  {
-                    label: "Status",
-                    value: completedCities.includes(selectedPlace.name)
-                      ? "Done"
-                      : "Pending",
-                    icon: "🎯",
-                  },
-                  { label: "XP", value: "+25", icon: "⚡" },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-2xl border border-[#7b4b24]/30 bg-[#ead7b5] p-3 text-center shadow-sm"
-                  >
-                    <span className="text-lg">{stat.icon}</span>
-                    <p className="mt-1 font-serif text-sm font-black text-[#2b160b]">
-                      {stat.value}
-                    </p>
-                    <p className="font-serif text-[9px] uppercase tracking-widest text-[#7b4b24]">
-                      {stat.label}
-                    </p>
-                  </div>
-                ))}
+              
+              <div className="mb-4 inline-block border-2 border-[#4b260f] bg-[#e4c48a] px-3 py-1 font-bold uppercase tracking-wider text-[#4b260f]">
+                {selectedPlace.mood}
               </div>
 
-              <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/70 p-3">
-                <PlaceStoryCard place={selectedPlace} />
+              <div className="mb-8 border-4 border-[#4b260f] bg-[#ead8b8] p-4 text-sm font-medium leading-relaxed text-[#5a3218]">
+                {selectedPlace.story}
               </div>
-
-             <div className="rounded-2xl border border-[#7b4b24]/30 bg-[#fff3dc]/70 p-3">
-                <StoryCapsule
-                  place={selectedPlace}
-                  onCapsuleAdded={(cityName) => {
-                    setCompletedCities((prev) =>
-                      prev.includes(cityName) ? prev : [...prev, cityName]
-                    );
-                  }}
-                />
+              
+              <div className="border-t-4 border-[#4b260f] pt-8">
+                 <StoryCapsule place={selectedPlace} onCapsuleAdded={(city) => {
+                    setCompletedCities((prev) => prev.includes(city) ? prev : [...prev, city]);
+                 }} />
               </div>
             </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-
-    {/* LEGEND */}
-<div
-  className={`${
-    panelOpen ? "hidden" : "hidden lg:block"
-  } absolute bottom-6 right-5 z-20 rounded-2xl border-2 border-[#4f2a12]/60 bg-[#f3dfb9]/95 p-3 shadow-[4px_4px_0_#8b2e16] backdrop-blur-xl`}
->
-      <p className="mb-2 font-serif text-[10px] font-black uppercase tracking-widest text-[#7b4b24]">
-        Legend
-      </p>
-      <div className="flex flex-col gap-1.5 font-serif text-[11px] text-[#4b260f]">
-        <span>🌸 Memory route</span>
-        <span>🌊 Rivers</span>
-        <span>✓ Visited city</span>
-      </div>
-    </div>
-  </section>
-);
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </main>
+  );
 }
