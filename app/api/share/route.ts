@@ -7,7 +7,10 @@ export async function POST(req: Request) {
   const user = await currentUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
   }
 
   const body = await req.json();
@@ -25,7 +28,13 @@ export async function POST(req: Request) {
     },
   });
 
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
+
   return NextResponse.json({
-    url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/share/${share.token}`,
+    url: `${baseUrl}/share/${share.token}`,
   });
 }
