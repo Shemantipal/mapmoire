@@ -2,25 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowRight,
   BookOpen,
   Camera,
   ChevronRight,
   Compass,
-  Layers,
   Map,
   MapPin,
   Menu,
   Play,
-  Zap,
-  Globe2,
-  Lock,
   Pause,
   Ticket,
-  Mail
 } from "lucide-react";
 
 // Local imports (ensure these exist in your project)
@@ -32,8 +26,6 @@ import { PlaceStoryCard } from "./PlaceStoryCard";
 import { defaultPlaces, type Place } from "./map-data";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 
 type MapLibre = typeof import("maplibre-gl");
 
@@ -160,9 +152,6 @@ const CSS = `
   }
 `;
 
-// ----------------------------------------------------------------------
-// 2. VINTAGE FILTERS & EFFECTS
-// ----------------------------------------------------------------------
 function VintageMapFilter() {
   return (
     <>
@@ -180,9 +169,6 @@ function VintageMapFilter() {
   );
 }
 
-// ----------------------------------------------------------------------
-// 3. MODULAR UI COMPONENTS (Retro Styled)
-// ----------------------------------------------------------------------
 
 function RetroButton({ children, onClick, className = "", variant = "primary" }: any) {
   const baseStyle = "flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider transition-all border-3 border-[#4b260f] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none";
@@ -200,6 +186,8 @@ function RetroButton({ children, onClick, className = "", variant = "primary" }:
 }
 
 function Navbar() {
+  const { isSignedIn } = useAuth(); // Hook handles auth state natively
+
   return (
     <header className="sticky top-0 z-50 border-b-4 border-[#4b260f] bg-[#ead8b8] shadow-[0_4px_0_rgba(75,38,15,0.1)]">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
@@ -222,14 +210,28 @@ function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <SignInButton mode="modal">
-            <button className="font-bold uppercase tracking-widest text-[#4b260f] hover:text-[#8b2e16]">Sign In</button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <div className="inline-block">
-              <RetroButton variant="primary">Start Mapping</RetroButton>
+          {!isSignedIn ? (
+            <>
+              <SignInButton mode="modal">
+                <button className="font-bold uppercase tracking-widest text-[#4b260f] hover:text-[#8b2e16]">Sign In</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <div className="inline-block">
+                  <RetroButton variant="primary">Start Mapping</RetroButton>
+                </div>
+              </SignUpButton>
+            </>
+          ) : (
+            <div className="h-10 w-10 overflow-hidden rounded-full border-3 border-[#4b260f] bg-[#fff3dc] shadow-[2px_2px_0_#4b260f]">
+              <UserButton 
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "w-full h-full"
+                  }
+                }}
+              />
             </div>
-          </SignUpButton>
+          )}
         </div>
 
         <button className="grid h-12 w-12 place-items-center border-3 border-[#4b260f] bg-[#fff3dc] shadow-[4px_4px_0_#4b260f] md:hidden">
@@ -255,9 +257,6 @@ function Marquee() {
   );
 }
 
-// ----------------------------------------------------------------------
-// 4. MAIN PAGE CONTENT COMPONENTS
-// ----------------------------------------------------------------------
 
 function HeroSection({ isTouring, onTour, onSearch, mapRef }: any) {
   return (
@@ -294,14 +293,13 @@ function HeroSection({ isTouring, onTour, onSearch, mapRef }: any) {
           </div>
         </div>
 
-        {/* Right Map Canvas */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
           className="relative h-[500px] w-full border-4 border-[#4b260f] bg-[#4b260f] shadow-[12px_12px_0_#8b2e16]"
         >
-          {/* Decorative frame elements */}
+
           <div className="absolute -left-3 -top-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
           <div className="absolute -right-3 -top-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
           <div className="absolute -left-3 -bottom-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
@@ -392,10 +390,6 @@ function Footer() {
     </footer>
   );
 }
-
-// ----------------------------------------------------------------------
-// 5. MAIN MAP APPLICATION LOGIC
-// ----------------------------------------------------------------------
 
 export function StoryMap() {
   const mapRef = useRef<HTMLDivElement | null>(null);
