@@ -15,6 +15,7 @@ export type Spot = {
 };
 
 export type Place = {
+  id?: string;
   name: string;
   state: string;
   coords: [number, number];

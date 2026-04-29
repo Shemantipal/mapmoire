@@ -17,12 +17,11 @@ export function CapsuleCard({ capsule, index, total, playingId, onTogglePlay }: 
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-amber-900/20 bg-[#13100a] transition hover:border-amber-800/30">
-      {/* Entry number — like a journal page number */}
       <div className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-amber-900/30 text-[10px] font-bold text-amber-600">
         {total - index}
       </div>
 
-      {/* Images */}
+
       {capsule.images?.length > 0 && (
         <div className={`grid gap-0.5 ${capsule.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
           {capsule.images.slice(0, 4).map((img, i) => (
@@ -45,9 +44,9 @@ export function CapsuleCard({ capsule, index, total, playingId, onTogglePlay }: 
         </div>
       )}
 
-      {/* Content */}
+  
       <div className="space-y-2.5 p-3.5">
-        {/* Date */}
+ 
         <p className="text-[10px] tracking-widest text-amber-800/60">
           {new Date(capsule.createdAt).toLocaleDateString("en-IN", {
             day: "numeric", month: "short", year: "numeric",
@@ -57,12 +56,12 @@ export function CapsuleCard({ capsule, index, total, playingId, onTogglePlay }: 
   <span className="text-xs text-amber-600">{capsule.mood}</span>
 )}
 
-        {/* Caption */}
+        
         {capsule.caption && (
           <p className="text-sm leading-relaxed text-amber-100/85">{capsule.caption}</p>
         )}
 
-        {/* Quote */}
+
         {capsule.quote && (
           <div className="rounded-xl border-l-2 border-amber-600/40 bg-amber-950/30 py-2 pl-3 pr-2">
             <p className="text-xs italic leading-relaxed text-amber-300/70">
@@ -71,7 +70,7 @@ export function CapsuleCard({ capsule, index, total, playingId, onTogglePlay }: 
           </div>
         )}
 
-        {/* Song */}
+   
         {capsule.songTitle && (
           <div className="flex items-center gap-3 rounded-xl border border-emerald-900/20 bg-emerald-950/20 px-3 py-2.5">
             {capsule.albumArt && (

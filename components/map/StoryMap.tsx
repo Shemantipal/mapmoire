@@ -15,6 +15,7 @@ import {
   Play,
   Pause,
   Ticket,
+  X, // Added X for closing the mobile menu
 } from "lucide-react";
 
 // Local imports (ensure these exist in your project)
@@ -169,7 +170,6 @@ function VintageMapFilter() {
   );
 }
 
-
 function RetroButton({ children, onClick, className = "", variant = "primary" }: any) {
   const baseStyle = "flex items-center justify-center px-6 py-3 font-bold uppercase tracking-wider transition-all border-3 border-[#4b260f] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none";
   const variants: any = {
@@ -186,7 +186,8 @@ function RetroButton({ children, onClick, className = "", variant = "primary" }:
 }
 
 function Navbar() {
-  const { isSignedIn } = useAuth(); // Hook handles auth state natively
+  const { isSignedIn } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile menu state added
 
   return (
     <header className="sticky top-0 z-50 border-b-4 border-[#4b260f] bg-[#ead8b8] shadow-[0_4px_0_rgba(75,38,15,0.1)]">
@@ -205,10 +206,12 @@ function Navbar() {
           </div>
         </div>
 
+        {/* Desktop Nav */}
         <nav className="hidden items-center gap-8 text-sm font-bold uppercase tracking-widest text-[#4b260f] md:flex">
             <a href="/capsules" className="hover:text-[#8b2e16] hover:underline decoration-2 underline-offset-4">Capsules</a>
         </nav>
 
+        {/* Desktop Auth */}
         <div className="hidden items-center gap-4 md:flex">
           {!isSignedIn ? (
             <>
@@ -234,10 +237,55 @@ function Navbar() {
           )}
         </div>
 
-        <button className="grid h-12 w-12 place-items-center border-3 border-[#4b260f] bg-[#fff3dc] shadow-[4px_4px_0_#4b260f] md:hidden">
-          <Menu className="h-6 w-6 text-[#4b260f]" />
+        {/* Mobile Menu Toggle Button */}
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="grid h-12 w-12 place-items-center border-3 border-[#4b260f] bg-[#fff3dc] shadow-[4px_4px_0_#4b260f] md:hidden"
+        >
+          {isMobileMenuOpen ? <X className="h-6 w-6 text-[#4b260f]" /> : <Menu className="h-6 w-6 text-[#4b260f]" />}
         </button>
       </div>
+
+      {/* Mobile Menu Dropdown Panel */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-t-4 border-[#4b260f] bg-[#fff3dc] md:hidden"
+          >
+            <nav className="flex flex-col items-center gap-6 py-8 font-bold uppercase tracking-widest text-[#4b260f]">
+              <a href="/capsules" className="hover:text-[#8b2e16] hover:underline decoration-2 underline-offset-4">Capsules</a>
+              
+              {!isSignedIn ? (
+                <div className="flex w-full flex-col items-center gap-4 border-t-2 border-[#4b260f]/20 pt-6">
+                  <SignInButton mode="modal">
+                    <button className="hover:text-[#8b2e16]">Sign In</button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <div className="inline-block">
+                      <RetroButton variant="primary">Start Mapping</RetroButton>
+                    </div>
+                  </SignUpButton>
+                </div>
+              ) : (
+                <div className="flex w-full justify-center border-t-2 border-[#4b260f]/20 pt-6">
+                  <div className="h-12 w-12 overflow-hidden rounded-full border-3 border-[#4b260f] bg-[#fff3dc] shadow-[2px_2px_0_#4b260f]">
+                    <UserButton 
+                      appearance={{
+                        elements: {
+                          userButtonAvatarBox: "w-full h-full"
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
@@ -256,7 +304,6 @@ function Marquee() {
     </div>
   );
 }
-
 
 function HeroSection({ isTouring, onTour, onSearch, mapRef }: any) {
   return (
@@ -299,7 +346,6 @@ function HeroSection({ isTouring, onTour, onSearch, mapRef }: any) {
           transition={{ duration: 0.8 }}
           className="relative h-[500px] w-full border-4 border-[#4b260f] bg-[#4b260f] shadow-[12px_12px_0_#8b2e16]"
         >
-
           <div className="absolute -left-3 -top-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
           <div className="absolute -right-3 -top-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
           <div className="absolute -left-3 -bottom-3 h-6 w-6 border-4 border-[#4b260f] bg-[#fff3dc] z-20"></div>
@@ -383,7 +429,7 @@ function Footer() {
         </div>
         <div className="flex gap-4">
           <Button variant="outline" className="border-2 border-[#ead8b8] text-[#ead8b8] hover:bg-[#ead8b8] hover:text-[#2b160b] rounded-none uppercase tracking-widest font-bold">
-             Newsletter
+              Newsletter
           </Button>
         </div>
       </div>
@@ -563,12 +609,52 @@ export function StoryMap() {
 
   const handleSearch = async (placeName: string) => {
     if (!placeName.trim() || !mapInstanceRef.current) return;
+    
+    // 1. First, try to find it in the curated local default places
     const localMatch = defaultPlaces.find((p) => p.name.toLowerCase().includes(placeName.toLowerCase()));
     
     if (localMatch) {
       setSelectedPlace(localMatch);
       setPanelOpen(true);
       mapInstanceRef.current.flyTo({ center: [localMatch.coords[1], localMatch.coords[0]], zoom: 11, duration: 1500 });
+      return;
+    }
+
+    // 2. If not found locally, use a global Geocoding API to find ANY city worldwide
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}`);
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        const hit = data[0];
+        const lat = parseFloat(hit.lat);
+        const lon = parseFloat(hit.lon);
+
+        // Create a temporary place object dynamically
+       // Create a temporary place object dynamically
+        const newPlace: Place = {
+          id: hit.place_id.toString(),
+          name: hit.name || placeName.split(',')[0],
+          state: hit.display_name.split(',').slice(1, 3).join(',').trim() || "Global Coordinate",
+          coords: [lat, lon], 
+          image: "https://images.unsplash.com/photo-1500835556837-99ac94a94552?auto=format&fit=crop&q=80&w=1000", 
+          mood: "Uncharted",
+          story: "A new coordinate waiting to be archived. Drop your memories here.",
+          // Add these missing properties to satisfy TypeScript:
+          emoji: "📍", 
+          spots: [] 
+        };
+
+        setSelectedPlace(newPlace);
+        setPanelOpen(true);
+        // Maplibre expects [longitude, latitude] for center
+        mapInstanceRef.current.flyTo({ center: [lon, lat], zoom: 11, duration: 1500 });
+      } else {
+        alert("Coordinate not found in the global atlas. Try another name.");
+      }
+    } catch (error) {
+      console.error("Geocoding failed", error);
+      alert("Navigation systems down. Please try again later.");
     }
   };
 

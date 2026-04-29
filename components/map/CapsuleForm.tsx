@@ -11,9 +11,23 @@ import {
   Plus,
   X,
   Sparkles,
+  Quote as QuoteIcon,
+  Disc,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Track, MOOD_TAGS, type MoodTag } from "./types";
+
+// --- Types (Assuming these match your types.ts) ---
+export type Track = {
+  id: string;
+  name: string;
+  artist: string;
+  image?: string;
+};
+
+export type MoodTag = {
+  label: string;
+  emoji: string;
+};
 
 type Props = {
   placeName: string;
@@ -29,19 +43,61 @@ type Props = {
   saving: boolean;
 };
 
-/* Shared input style factory */
-const inputBase: React.CSSProperties = {
-  width: "100%",
-  background: "rgba(255,248,238,0.8)",
-  border: "1.5px solid rgba(176,120,64,0.3)",
-  borderRadius: 12,
-  color: "#2b160b",
-  fontFamily: "'Lato', sans-serif",
-  fontSize: 13,
-  fontWeight: 400,
-  outline: "none",
-  transition: "border-color 0.18s",
-};
+// Assuming you import this, but defined here for the component to work
+const MOOD_TAGS: MoodTag[] = [
+  { label: "Nostalgic", emoji: "🕰️" },
+  { label: "Thrilled", emoji: "⚡" },
+  { label: "Peaceful", emoji: "🍃" },
+  { label: "Chaotic", emoji: "🌪️" },
+  { label: "Romantic", emoji: "🍷" },
+  { label: "Disappointed", emoji: "🌧️" },
+];
+
+// ----------------------------------------------------------------------
+// MODULAR SUB-COMPONENTS (Vintage Styled)
+// ----------------------------------------------------------------------
+
+const RetroTextarea = ({ label, icon: Icon, ...props }: any) => (
+  <div className="space-y-1.5 w-full">
+    {label && (
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[#8b2e16]">
+        {label}
+      </p>
+    )}
+    <div className="relative">
+      {Icon && (
+        <Icon className="absolute left-3 top-3 h-4 w-4 text-[#8b2e16] fill-[#8b2e16]/20" />
+      )}
+      <textarea
+        className={`w-full bg-[#fff3dc] border-[3px] border-[#4b260f] text-[#2b160b] placeholder:text-[#8b6b5d] placeholder:italic focus:outline-none focus:translate-x-[2px] focus:translate-y-[2px] shadow-[4px_4px_0_#4b260f] focus:shadow-[2px_2px_0_#4b260f] transition-all resize-none ${
+          Icon ? "pl-10 pr-3 py-3" : "p-3"
+        } ${props.className || "font-mono text-sm"}`}
+        {...props}
+      />
+    </div>
+  </div>
+);
+
+const RetroInput = ({ icon: Icon, rightIcon: RightIcon, ...props }: any) => (
+  <div className="relative w-full">
+    {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4b260f]" />}
+    <input
+      className={`w-full bg-[#fff3dc] border-[3px] border-[#4b260f] text-[#2b160b] placeholder:text-[#8b6b5d] placeholder:italic focus:outline-none focus:translate-x-[2px] focus:translate-y-[2px] shadow-[4px_4px_0_#4b260f] focus:shadow-[2px_2px_0_#4b260f] transition-all font-mono text-sm ${
+        Icon ? "pl-10" : "pl-3"
+      } ${RightIcon ? "pr-10" : "pr-3"} py-3`}
+      {...props}
+    />
+    {RightIcon && (
+      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+        <RightIcon />
+      </div>
+    )}
+  </div>
+);
+
+// ----------------------------------------------------------------------
+// MAIN COMPONENT
+// ----------------------------------------------------------------------
 
 export function CapsuleForm({ placeName, onSave, saving }: Props) {
   const [open, setOpen] = useState(true);
@@ -58,271 +114,259 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
 
   const searchSongs = async (q: string) => {
     setSongQuery(q);
-    if (!q.trim()) { setResults([]); return; }
+    if (!q.trim()) {
+      setResults([]);
+      return;
+    }
     try {
       setSearching(true);
       const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}`);
       setResults(res.ok ? await res.json() : []);
-    } catch { setResults([]); }
-    finally { setSearching(false); }
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleImages = (files: FileList | null) => {
     if (!files) return;
-    Array.from(files).slice(0, 4 - images.length).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () =>
-        setImages((prev) => [...prev, reader.result as string].slice(0, 4));
-      reader.readAsDataURL(file);
-    });
+    Array.from(files)
+      .slice(0, 4 - images.length)
+      .forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          setImages((prev) => [...prev, reader.result as string].slice(0, 4));
+        reader.readAsDataURL(file);
+      });
   };
 
   const handleSubmit = async () => {
     await onSave({ caption, quote, images, selectedSong, mood, overhyped, hiddenGem });
-    setCaption(""); setQuote(""); setImages([]);
-    setSongQuery(""); setResults([]); setSelectedSong(null);
-    setMood(null); setOverhyped(""); setHiddenGem("");
+    setCaption("");
+    setQuote("");
+    setImages([]);
+    setSongQuery("");
+    setResults([]);
+    setSelectedSong(null);
+    setMood(null);
+    setOverhyped("");
+    setHiddenGem("");
   };
 
   const isEmpty = !caption.trim() && !quote.trim() && !selectedSong && images.length === 0;
 
   return (
-    <div
-      className="rounded-2xl border border-[#c9a060]/50 overflow-hidden"
-      style={{ background: "rgba(253,246,232,0.98)", fontFamily: "'Lato', sans-serif" }}
-    >
-      {/* Header toggle */}
+    <div className="border-[4px] border-[#4b260f] bg-[#ead8b8] shadow-[8px_8px_0_#4b260f] overflow-visible">
+      
+      {/* --- HEADER TOGGLE --- */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors hover:bg-[#f0ddb8]/40"
-        style={{ borderBottom: open ? "1.5px solid rgba(176,120,64,0.2)" : "none" }}
+        className="flex w-full items-center justify-between bg-[#fff3dc] px-4 py-4 text-left transition-colors hover:bg-[#ffeac2] border-b-[4px] border-double border-[#4b260f]"
       >
-        <div className="flex items-center gap-2.5">
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-full"
-            style={{ background: "rgba(139,46,22,0.1)" }}
-          >
-            <Plus className="h-3.5 w-3.5" style={{ color: "#8b2e16" }} />
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center border-2 border-[#4b260f] bg-[#8b2e16] shadow-[2px_2px_0_#4b260f]">
+            <Plus className="h-4 w-4 text-[#fff3dc]" />
           </div>
-          <span className="text-sm font-bold" style={{ color: "#2b160b", fontFamily: "'Playfair Display', serif" }}>
-            New Memory Entry
+          <span className="font-serif text-lg font-black tracking-tight text-[#2b160b] uppercase">
+            Log Memory
           </span>
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-            style={{ background: "rgba(139,46,22,0.1)", color: "#8b2e16" }}
-          >
+          <span className="border-2 border-[#4b260f] bg-[#fff3dc] px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#2b160b] shadow-[2px_2px_0_#4b260f]">
             +25 XP
           </span>
         </div>
-        {open
-          ? <ChevronUp className="h-4 w-4" style={{ color: "#b07840" }} />
-          : <ChevronDown className="h-4 w-4" style={{ color: "#b07840" }} />
-        }
+        {open ? (
+          <ChevronUp className="h-5 w-5 text-[#4b260f]" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-[#4b260f]" />
+        )}
       </button>
 
+      {/* --- FORM BODY --- */}
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.26, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="space-y-3.5 px-4 pb-4 pt-3">
-
+            <div className="space-y-6 px-5 py-6">
+              
               {/* Caption */}
-              <textarea
+              <RetroTextarea
                 value={caption}
-                onChange={(e) => setCaption(e.target.value)}
+                onChange={(e: any) => setCaption(e.target.value)}
                 placeholder={`What happened in ${placeName}?`}
-                rows={2}
-                style={{ ...inputBase, padding: "10px 12px", resize: "none" }}
-                onFocus={(e) => (e.target.style.borderColor = "rgba(139,46,22,0.5)")}
-                onBlur={(e) => (e.target.style.borderColor = "rgba(176,120,64,0.3)")}
+                rows={3}
+                label="The Story"
               />
 
               {/* Quote */}
-              <div className="relative">
-                <span
-                  className="absolute left-3 top-2.5 text-xl leading-none select-none"
-                  style={{ color: "rgba(176,120,64,0.5)" }}
-                >"</span>
-                <input
-                  value={quote}
-                  onChange={(e) => setQuote(e.target.value)}
-                  placeholder="A quote or feeling…"
-                  style={{ ...inputBase, padding: "10px 12px 10px 28px", fontStyle: "italic" }}
-                  onFocus={(e) => (e.target.style.borderColor = "rgba(139,46,22,0.5)")}
-                  onBlur={(e) => (e.target.style.borderColor = "rgba(176,120,64,0.3)")}
-                />
-              </div>
+              <RetroTextarea
+                value={quote}
+                onChange={(e: any) => setQuote(e.target.value)}
+                placeholder="A quote overheard, or a fleeting thought..."
+                rows={2}
+                icon={QuoteIcon}
+                className="font-serif text-lg italic placeholder:text-base placeholder:font-serif"
+              />
 
-              {/* Mood */}
-              <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: "#9b6b3a" }}>
-                  Mood
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {MOOD_TAGS.map((tag) => (
-                    <button
-                      key={tag.label}
-                      type="button"
-                      onClick={() => setMood(mood?.label === tag.label ? null : tag)}
-                      className="rounded-full border px-2.5 py-1 text-xs transition-all"
-                      style={{
-                        fontFamily: "'Lato', sans-serif",
-                        fontWeight: 600,
-                        background: mood?.label === tag.label ? "rgba(139,46,22,0.12)" : "rgba(255,248,238,0.6)",
-                        borderColor: mood?.label === tag.label ? "rgba(139,46,22,0.5)" : "rgba(176,120,64,0.3)",
-                        color: mood?.label === tag.label ? "#8b2e16" : "#7b4b24",
-                      }}
-                    >
-                      {tag.emoji} {tag.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Overhyped */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#b05030" }}>
-                  🙄 Overhyped spots
-                </p>
-                <textarea
-                  value={overhyped}
-                  onChange={(e) => setOverhyped(e.target.value)}
-                  placeholder={`What's not worth the hype in ${placeName}?`}
-                  rows={2}
-                  style={{
-                    ...inputBase,
-                    padding: "10px 12px",
-                    resize: "none",
-                    borderColor: "rgba(180,80,50,0.25)",
-                    background: "rgba(255,240,230,0.5)",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "rgba(180,80,50,0.5)")}
-                  onBlur={(e) => (e.target.style.borderColor = "rgba(180,80,50,0.25)")}
-                />
-              </div>
-
-              {/* Hidden Gem */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#3a7a50" }}>
-                  ✨ Hidden gem / best tip
-                </p>
-                <textarea
+              {/* Grid for Overhyped & Hidden Gem */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <RetroTextarea
                   value={hiddenGem}
-                  onChange={(e) => setHiddenGem(e.target.value)}
-                  placeholder="Your secret find or must-know advice for future travellers…"
+                  onChange={(e: any) => setHiddenGem(e.target.value)}
+                  placeholder="Secret diner? Quiet park?"
                   rows={2}
-                  style={{
-                    ...inputBase,
-                    padding: "10px 12px",
-                    resize: "none",
-                    borderColor: "rgba(60,130,80,0.25)",
-                    background: "rgba(230,248,238,0.5)",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "rgba(60,130,80,0.5)")}
-                  onBlur={(e) => (e.target.style.borderColor = "rgba(60,130,80,0.25)")}
+                  label="💎 Hidden Gem"
+                />
+                <RetroTextarea
+                  value={overhyped}
+                  onChange={(e: any) => setOverhyped(e.target.value)}
+                  placeholder="Tourist trap? Skip it?"
+                  rows={2}
+                  label="🙄 Overhyped"
                 />
               </div>
 
-              {/* Song search */}
-              <div className="space-y-2">
-                <div className="relative">
-                  <Music className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: "#3a7a50" }} />
-                  <input
-                    value={songQuery}
-                    onChange={(e) => searchSongs(e.target.value)}
-                    placeholder="Search a song for this memory…"
-                    style={{ ...inputBase, padding: "10px 36px" }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(139,46,22,0.5)")}
-                    onBlur={(e) => (e.target.style.borderColor = "rgba(176,120,64,0.3)")}
-                  />
-                  {searching && (
-                    <Loader2 className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin" style={{ color: "#b07840" }} />
-                  )}
+              {/* Mood Tags */}
+              <div>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#8b2e16]">
+                  Vibe Check
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {MOOD_TAGS.map((tag) => {
+                    const isActive = mood?.label === tag.label;
+                    return (
+                      <button
+                        key={tag.label}
+                        type="button"
+                        onClick={() => setMood(isActive ? null : tag)}
+                        className={`border-[3px] border-[#4b260f] px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                          isActive
+                            ? "bg-[#4b260f] text-[#fff3dc] translate-x-[2px] translate-y-[2px] shadow-none"
+                            : "bg-[#fff3dc] text-[#4b260f] shadow-[3px_3px_0_#4b260f] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-[#ffeac2]"
+                        }`}
+                      >
+                        {tag.emoji} {tag.label}
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+
+              {/* Song Search */}
+              <div className="space-y-2 relative z-20">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#8b2e16]">
+                  Soundtrack
+                </p>
+                <RetroInput
+                  value={songQuery}
+                  onChange={(e: any) => searchSongs(e.target.value)}
+                  placeholder="Search the archive for a track..."
+                  icon={Music}
+                  rightIcon={() =>
+                    searching ? <Loader2 className="h-4 w-4 animate-spin text-[#8b2e16]" /> : null
+                  }
+                />
 
                 <AnimatePresence>
                   {results.length > 0 && !selectedSong && (
                     <motion.div
-                      initial={{ opacity: 0, y: -4 }}
+                      initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="max-h-40 overflow-y-auto rounded-xl border border-[#c9a060]/40"
-                      style={{ background: "rgba(253,246,232,0.98)" }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute left-0 right-0 mt-2 max-h-48 overflow-y-auto border-[3px] border-[#4b260f] bg-[#fff3dc] shadow-[6px_6px_0_#4b260f] z-50"
                     >
                       {results.map((track) => (
                         <button
                           key={track.id}
                           type="button"
-                          onClick={() => { setSelectedSong(track); setResults([]); setSongQuery(""); }}
-                          className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[#f0ddb8]/50"
+                          onClick={() => {
+                            setSelectedSong(track);
+                            setResults([]);
+                            setSongQuery("");
+                          }}
+                          className="flex w-full items-center gap-3 border-b-[2px] border-dashed border-[#4b260f] p-3 text-left transition-colors hover:bg-[#ffeac2] last:border-b-0"
                         >
-                          {track.image && (
-                            <Image src={track.image} width={34} height={34} alt={track.name} className="rounded-lg flex-shrink-0" />
+                          {track.image ? (
+                            <div className="border-2 border-[#4b260f] shrink-0">
+                              <Image src={track.image} width={36} height={36} alt={track.name} unoptimized />
+                            </div>
+                          ) : (
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[#4b260f] bg-[#2b160b]">
+                              <Disc className="h-4 w-4 text-[#fff3dc]" />
+                            </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-bold" style={{ color: "#2b160b" }}>{track.name}</p>
-                            <p className="truncate text-[11px]" style={{ color: "#9b6b3a" }}>{track.artist}</p>
+                            <p className="truncate font-bold text-[#2b160b] text-sm uppercase">{track.name}</p>
+                            <p className="truncate text-xs font-bold text-[#8b2e16]">{track.artist}</p>
                           </div>
-                          <Plus className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#3a7a50" }} />
+                          <Plus className="h-5 w-5 shrink-0 text-[#4b260f]" />
                         </button>
                       ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
 
+                {/* Selected Song Card */}
                 {selectedSong && (
-                  <div
-                    className="flex items-center gap-2.5 rounded-xl border px-3 py-2"
-                    style={{ background: "rgba(220,245,230,0.5)", borderColor: "rgba(60,130,80,0.3)" }}
-                  >
-                    {selectedSong.image && (
-                      <Image src={selectedSong.image} width={36} height={36} alt={selectedSong.name} className="rounded-lg flex-shrink-0" />
+                  <div className="flex items-center gap-3 border-[3px] border-[#4b260f] bg-[#fff3dc] p-2 shadow-[4px_4px_0_#4b260f]">
+                    {selectedSong.image ? (
+                      <div className="border-2 border-[#4b260f] shrink-0">
+                        <Image src={selectedSong.image} width={44} height={44} alt={selectedSong.name} unoptimized />
+                      </div>
+                    ) : (
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-[#4b260f] bg-[#2b160b]">
+                        <Disc className="h-5 w-5 text-[#fff3dc]" />
+                      </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-bold" style={{ color: "#1e5c38" }}>{selectedSong.name}</p>
-                      <p className="truncate text-[11px]" style={{ color: "#3a7a50" }}>{selectedSong.artist}</p>
+                      <p className="truncate font-bold text-[#2b160b] text-sm uppercase">{selectedSong.name}</p>
+                      <p className="truncate text-xs font-bold text-[#8b2e16]">{selectedSong.artist}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedSong(null)}
-                      className="rounded-full p-1 transition-colors hover:bg-[#c9a060]/20"
+                      className="mr-2 flex h-8 w-8 items-center justify-center border-2 border-[#4b260f] bg-[#8b2e16] text-[#fff3dc] transition-transform hover:-translate-y-1 hover:shadow-[2px_2px_0_#4b260f]"
                     >
-                      <X className="h-3 w-3" style={{ color: "#9b6b3a" }} />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Photo upload */}
-              <div>
-                <label
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-xs transition-all hover:bg-[#f0ddb8]/30"
-                  style={{ borderColor: "rgba(176,120,64,0.4)", color: "#9b6b3a", fontWeight: 600 }}
-                >
-                  <Camera className="h-3.5 w-3.5" />
-                  {images.length > 0 ? `${images.length}/4 photos added` : "Add up to 4 photos"}
-                  <input type="file" accept="image/*" multiple className="hidden"
-                    onChange={(e) => handleImages(e.target.files)} />
+              {/* Photo Upload */}
+              <div className="space-y-3 z-10 relative">
+                <label className="flex w-full cursor-pointer items-center justify-center gap-2 border-[3px] border-dashed border-[#4b260f] bg-[#fff3dc] py-4 text-sm font-bold uppercase tracking-widest text-[#4b260f] transition-all hover:bg-[#ffeac2] hover:shadow-[4px_4px_0_#4b260f]">
+                  <Camera className="h-5 w-5" />
+                  {images.length > 0 ? `${images.length}/4 Photos Attached` : "Attach Photographs"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleImages(e.target.files)}
+                  />
                 </label>
 
                 {images.length > 0 && (
-                  <div className="mt-2 grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-4 gap-3">
                     {images.map((img, i) => (
-                      <div key={i} className="relative h-14 overflow-hidden rounded-xl border border-[#c9a060]/30">
-                        <Image src={img} alt="" fill className="object-cover" unoptimized />
+                      <div
+                        key={i}
+                        className="relative aspect-square border-[3px] border-[#4b260f] bg-[#2b160b] shadow-[4px_4px_0_rgba(75,38,15,0.3)] transform -rotate-1 even:rotate-1"
+                      >
+                        <Image src={img} alt="" fill className="object-cover opacity-90 sepia-[0.3]" unoptimized />
                         <button
                           type="button"
                           onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
-                          className="absolute right-0.5 top-0.5 rounded-full p-0.5"
-                          style={{ background: "rgba(43,22,11,0.75)" }}
+                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center border-2 border-[#4b260f] bg-[#8b2e16] text-[#fff3dc] hover:scale-110 transition-transform"
                         >
-                          <X className="h-2.5 w-2.5 text-white" />
+                          <X className="h-3 w-3" />
                         </button>
                       </div>
                     ))}
@@ -330,27 +374,21 @@ export function CapsuleForm({ placeName, onSave, saving }: Props) {
                 )}
               </div>
 
-              {/* Save button */}
+              {/* Submit Button */}
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={saving || isEmpty}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-bold transition-all disabled:opacity-40"
-                style={{
-                  background: saving || isEmpty ? "#c9a060" : "#8b2e16",
-                  color: "#fff8ee",
-                  fontFamily: "'Lato', sans-serif",
-                  fontWeight: 700,
-                  letterSpacing: "0.03em",
-                  border: "none",
-                  boxShadow: saving || isEmpty ? "none" : "0 3px 12px rgba(139,46,22,0.35)",
-                  cursor: saving || isEmpty ? "default" : "pointer",
-                }}
+                className="flex w-full items-center justify-center gap-2 border-[4px] border-[#4b260f] bg-[#8b2e16] py-4 text-base font-black uppercase tracking-[0.15em] text-[#fff3dc] transition-all disabled:opacity-50 disabled:cursor-not-allowed enabled:shadow-[6px_6px_0_#4b260f] enabled:active:translate-x-[4px] enabled:active:translate-y-[4px] enabled:active:shadow-none enabled:hover:bg-[#a63a1d] mt-4"
               >
                 {saving ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</>
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" /> Publishing...
+                  </>
                 ) : (
-                  <><Sparkles className="h-3.5 w-3.5" /> Seal this Memory</>
+                  <>
+                    <Sparkles className="h-5 w-5" /> Seal this Memory
+                  </>
                 )}
               </button>
 
